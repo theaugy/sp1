@@ -9,6 +9,7 @@ var dbglog = function(msg) {
 // The map is ordered:
 // left-to-right
 // top-to-bottom
+// F_ prefixes controls that are in the 'effects' region
 // L_ prefixes controls that are in the 'left deck' region
 // R_ prefixes controls that are in the 'right deck' region
 // M_ prefixes controls that are in the middle region (between the vertical white dividing lines)
@@ -16,14 +17,15 @@ var dbglog = function(msg) {
 // Note that there is a space before the comma because I use an awk script to generate the xml for
 // .midi.xml, and not having to hack off the comma keeps that script a bit simpler.
 sp1.midiMap = {
-    L_knob1: [ 0xB4 , 0x02 , {led: false , type: 'knob'}] ,
-    L_knob1_shift: [ 0xB4 , 0x12 , {led: false , type: 'knob'}] ,
-    L_knob1Detail: [ 0xB4 , 0x22 , {led: false , type: 'detail'}] ,
-    L_knob1Detail_shift: [ 0xB4 , 0x32 , {led: false , type: 'detail'}] ,
-    L_knob2: [ 0xB4 , 0x04 , {led: false , type: 'knob'}] ,
-    L_knob2_shift: [ 0xB4 , 0x14 , {led: false , type: 'knob'}] ,
-    L_knob2Detail: [ 0xB4 , 0x24 , {led: false , type: 'detail'}] ,
-    L_knob2Detail_shift: [ 0xB4 , 0x34 , {led: false , type: 'detail'}] ,
+    F_knob1: [ 0xB4 , 0x02 , {led: false , type: 'knob'}] ,
+    F_knob1_shift: [ 0xB4 , 0x12 , {led: false , type: 'knob'}] ,
+    F_knob1Detail: [ 0xB4 , 0x22 , {led: false , type: 'detail'}] ,
+    F_knob1Detail_shift: [ 0xB4 , 0x32 , {led: false , type: 'detail'}] ,
+    F_knob2: [ 0xB4 , 0x04 , {led: false , type: 'knob'}] ,
+    F_knob2_shift: [ 0xB4 , 0x14 , {led: false , type: 'knob'}] ,
+    F_knob2Detail: [ 0xB4 , 0x24 , {led: false , type: 'detail'}] ,
+    F_knob2Detail_shift: [ 0xB4 , 0x34 , {led: false , type: 'detail'}] ,
+
     L_knob3: [ 0xB4 , 0x06 , {led: false , type: 'knob'}] ,
     L_knob3_shift: [ 0xB4 , 0x16 , {led: false , type: 'knob'}] ,
     L_knob3Detail: [ 0xB4 , 0x26 , {led: false , type: 'detail'}] ,
@@ -33,8 +35,8 @@ sp1.midiMap = {
     L_beatRotary_shift: [ 0xB4 , 0x10 , {led: false , type: 'rotary'}] ,
     L_beatRotaryBtn: [ 0x94 , 0x43 , {led: false , type: 'button'}] ,
     L_beatRotaryBtn_shift: [ 0x94 , 0x40 , {led: false , type: 'button'}] ,
-    L_fxBtn1: [ 0x94 , 0x47 , {led: true , type: 'button'}] ,
-    L_fxBtn2: [ 0x94 , 0x48 , {led: true , type: 'button'}] ,
+    F_fxBtn1: [ 0x94 , 0x47 , {led: true , type: 'button'}] ,
+    F_fxBtn2: [ 0x94 , 0x48 , {led: true , type: 'button'}] ,
     L_fxBtn3: [ 0x94 , 0x49 , {led: true , type: 'button'}] ,
     L_beatBtn: [ 0x94 , 0x4A , {led: true , type: 'button'}] ,
     L_sync: [ 0x90 , 0x58 , {led: true , type: 'button'}] ,
@@ -99,14 +101,15 @@ sp1.midiMap = {
     L_pad31: [ 0x97 , 0x36 , {led: true , type: 'button'}] ,
     L_pad32: [ 0x97 , 0x37 , {led: true , type: 'button'}] ,
 
-    R_knob1: [ 0xB5 , 0x02 , {led: false , type: 'knob'}] ,
-    R_knob1_shift: [ 0xB5 , 0x12 , {led: false , type: 'knob'}] ,
-    R_knob1Detail: [ 0xB5 , 0x22 , {led: false , type: 'detail'}] ,
-    R_knob1Detail_shift: [ 0xB5 , 0x32 , {led: false , type: 'detail'}] ,
-    R_knob2: [ 0xB5 , 0x04 , {led: false , type: 'knob'}] ,
-    R_knob2_shift: [ 0xB5 , 0x14 , {led: false , type: 'knob'}] ,
-    R_knob2Detail: [ 0xB5 , 0x24 , {led: false , type: 'detail'}] ,
-    R_knob2Detail_shift: [ 0xB5 , 0x34 , {led: false , type: 'detail'}] ,
+    F_knob3: [ 0xB5 , 0x02 , {led: false , type: 'knob'}] ,
+    F_knob3_shift: [ 0xB5 , 0x12 , {led: false , type: 'knob'}] ,
+    F_knob3Detail: [ 0xB5 , 0x22 , {led: false , type: 'detail'}] ,
+    F_knob3Detail_shift: [ 0xB5 , 0x32 , {led: false , type: 'detail'}] ,
+    F_knob4: [ 0xB5 , 0x04 , {led: false , type: 'knob'}] ,
+    F_knob4_shift: [ 0xB5 , 0x14 , {led: false , type: 'knob'}] ,
+    F_knob4Detail: [ 0xB5 , 0x24 , {led: false , type: 'detail'}] ,
+    F_knob4Detail_shift: [ 0xB5 , 0x34 , {led: false , type: 'detail'}] ,
+
     R_knob3: [ 0xB5 , 0x06 , {led: false , type: 'knob'}] ,
     R_knob3_shift: [ 0xB5 , 0x16 , {led: false , type: 'knob'}] ,
     R_knob3Detail: [ 0xB5 , 0x26 , {led: false , type: 'detail'}] ,
@@ -116,8 +119,8 @@ sp1.midiMap = {
     R_beatRotary_shift: [ 0xB5 , 0x10 , {led: false , type: 'rotary'}] ,
     R_beatRotaryBtn: [ 0x95 , 0x43 , {led: false , type: 'button'}] ,
     R_beatRotaryBtn_shift: [ 0x95 , 0x40 , {led: false , type: 'button'}] ,
-    R_fxBtn1: [ 0x95 , 0x47 , {led: true , type: 'button'}] ,
-    R_fxBtn2: [ 0x95 , 0x48 , {led: true , type: 'button'}] ,
+    F_fxBtn3: [ 0x95 , 0x47 , {led: true , type: 'button'}] ,
+    F_fxBtn4: [ 0x95 , 0x48 , {led: true , type: 'button'}] ,
     R_fxBtn3: [ 0x95 , 0x49 , {led: true , type: 'button'}] ,
     R_beatBtn: [ 0x95 , 0x4A , {led: true , type: 'button'}] ,
     R_sync: [ 0x91 , 0x58 , {led: true , type: 'button'}] ,
@@ -196,7 +199,7 @@ sp1.midiMap = {
 // NOTE: This reflects the order in which the effects cycle in the mixxx ui.
 // Therefore, this is a particularly brittle component of this script.
 sp1._fx = [
-    'flanger',
+     'flanger',
      'bitcrusher' ,
      'filter' ,
      'reverb' ,
@@ -361,102 +364,6 @@ var makeDeck = function(deckNum) {
         return sp1.midiMap[ret._physGet(logicalKey)];
     };
 
-    var fxunitPrefix = '[EffectRack1_EffectUnit' + ret.deck;
-    ret.fxunit = fxunitPrefix + ']';
-
-    // each deck defaults to 'reverb'
-    var effectGroup = fxunitPrefix + '_Effect1]';
-
-    // initialize our EffectUnit so that it applies to our deck
-    mixxxSet(fxunitPrefix + ']', 'group_[Channel' + ret.deck + ']_enable', true);
-    mixxxSet(effectGroup, 'enabled', false); // disabled by default
-
-    // initialize so that 'reverb' is selected by default
-    var defaultEffect = 'reverb';
-    cycleFx(ret.fxunit, 1 + sp1._fx.indexOf(defaultEffect));
-    ret._currentEffect = defaultEffect;
-
-    ret._fxLatch = {}; // maps effect name to latch that represents it
-    ret._fxValue = {}; // need to keep track of knob values internally (mixxx resets the knob when you switch fx)
-
-    // returns true if effect was changed; false otherwise
-    ret.selectEffect = function(effect, effectGroup) {
-        if (effect === ret._currentEffect) {
-            return false; // effect already selected
-        }
-        var target = sp1._fx.indexOf(effect);
-        var current = sp1._fx.indexOf(ret._currentEffect);
-        //dbglog("selecting " + effect + " changing " + current + " -> " + target);
-        cycleFx(ret.fxunit, target - current);
-
-        var t = ret._fxLatch[ret._currentEffect];
-
-        // disable previous effect led
-        if (t) {
-            sp1.ledOff(t);
-        }
-
-        // enable new effect
-        t = ret._fxLatch[effect];
-        if (t) {
-            mixxxSet(effectGroup, 'enabled', true);
-            sp1.ledSet(t, mixxxGet(effectGroup, 'enabled'));
-        }
-
-        ret._currentEffect = effect;
-        return true;
-    };
-
-    // fx controls don't map perfectly onto mixxx. If we had additional racks to play with we
-    // could do it. So we kind of approximate it by having each knob select its effect when
-    // you touch it. Since we only have 1 effect at a time per deck, this means we need to
-    // go through some extra effort to be sure the LEDs stay in sync with the currently
-    // select effect. selectEffect() handles most of the ugly stuff.
-    var makeFxControl = function(knob, latch, effectGroup, effect, param) {
-
-        var physLatch = ret._physGet(latch);
-
-        // set up knob
-        // It looks like the knobs actually send two midi messages: a MSB and a LSB.
-        // For instance, knob1 will send 0x02 and 0x22 every time you touch the knob.
-        // 0x02, the MSB, runs from 0-127 over the range of the knob.
-        // 0x22, the LSB, runs from 0x00-0x70, in increments of 0x10, but it repeats every time 0x02 increases by one.
-        // So this effectively just adds a few more bits of precision to the knob value.
-        // For now, I'll just use the MSB value.
-        midi[ret._physGet(knob)] = function(channel, control, value, status, group) {
-            if (ret.selectEffect(effect, effectGroup)) {
-                // if we're switching to a new effect by tweaking the knob, enable it
-                mixxxSet(effectGroup, 'enabled', true);
-                sp1.ledSet(physLatch, true);
-            }
-            mixxxSet(effectGroup, param, valueFromMidi(value));
-            ret._fxValue[effect] = valueFromMidi(value);
-        };
-
-        // set up latch (which toggles the effect on/off)
-        midi[physLatch] = function(channel, control, value, status, group) {
-            if (!ret.selectEffect(effect, effectGroup)) {
-                if (value == 0x7F) {
-                    mixxxToggle(effectGroup, 'enabled');
-                    sp1.ledSet(physLatch, mixxxGet(effectGroup, 'enabled'));
-                }
-            }
-            else
-            {
-                // switched to new effect. restore previous value (this should make it match
-                // the knob)
-                var previousValue = ret._fxValue[effect];
-                //dbglog('Switched to ' + effect + ' via latch. restoring value ' + previousValue);
-                mixxxSet(effectGroup, param, previousValue);
-            }
-        };
-
-        ret._fxLatch[effect] = physLatch;
-        ret._fxValue[effect] = 0;
-    };
-
-    makeFxControl('knob1', 'fxBtn1', effectGroup, 'reverb', 'parameter2');
-    makeFxControl('knob2', 'fxBtn2', effectGroup, 'echo', 'parameter1');
 
     var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
     midi[ret._physGet('knob3')] = function(channel, control, value, status, group) {
@@ -671,7 +578,7 @@ var makeDeck = function(deckNum) {
     return ret;
 };
 
-makeMiddle = function() {
+var makeMiddle = function() {
     var ret = {};
     ret.physicalPrefix = 'M_';
     ret._physGet = function(logicalKey) {
@@ -682,6 +589,23 @@ makeMiddle = function() {
     };
 
     var midi = {};
+
+    var unit = function(n) { return  '[EffectRack1_EffectUnit' + n + ']'};
+    var chan = function(n) { return 'group_[Channel' + n + ']_enable'; };
+    var fxenable = function(u, c, btn) {
+        sp1.ledSet(ret._physGet(btn), mixxxGet(unit(u), chan(c)));
+        return function(channel, control, value, status, group) {
+            if (value == 0x7F) {
+                mixxxToggle(unit(u), chan(c));
+                mixxxSet(unit(u+1), chan(c), mixxxGet(unit(u), chan(c)));
+                sp1.ledSet(ret._physGet(btn), mixxxGet(unit(u), chan(c)));
+            }
+        }
+    };
+    midi[ret._physGet('fxLdeck1')] = fxenable(1, 1, 'fxLdeck1');
+    midi[ret._physGet('fxLdeck2')] = fxenable(1, 2, 'fxLdeck2');
+    midi[ret._physGet('fxRdeck1')] = fxenable(3, 1, 'fxRdeck1');
+    midi[ret._physGet('fxRdeck2')] = fxenable(3, 2, 'fxRdeck2');
 
     midi[ret._physGet('loadL')] = function(channel, control, value, status, group) {
         mixxxButtonPress('[Channel' + sp1.currentLeftDeck.deck + ']', 'LoadSelectedTrack');
@@ -710,12 +634,79 @@ makeMiddle = function() {
     return ret;
 };
 
+var makeFx = function() {
+
+    var ret = {};
+    var midi = {};
+    ret.physicalPrefix = 'F_';
+    ret._physGet = function(logicalKey) {
+        return ret.physicalPrefix + logicalKey;
+    };
+    ret._midiGet = function(logicalKey) {
+        return sp1.midiMap[ret._physGet(logicalKey)];
+    };
+
+    var fxgroup = function(num) {
+        return '[EffectRack1_EffectUnit' + num + ']';
+    };
+
+    cycleFx(fxgroup(1), 1+sp1._fx.indexOf('flanger'));
+    cycleFx(fxgroup(2), 1+sp1._fx.indexOf('bitcrusher'));
+    cycleFx(fxgroup(3), 1+sp1._fx.indexOf('reverb'));
+    // setting link_type requires us to obey 'midi takeover' rules when we initialize
+    // (i.e., when we send the sysex message) which isn't ideal. We'll just set it ourselves.
+    //mixxxSet('[EffectRack1_EffectUnit3_Effect1]', 'parameter2_link_type', 1);
+    // Note: link_inverse doesn't seem to work at all.
+    //mixxxSet('[EffectRack1_EffectUnit3_Effect1]', 'parameter2_link_inverse', true);
+    cycleFx(fxgroup(4), 1+sp1._fx.indexOf('echo'));
+
+    var makeFxControl = function(knob, latch, groupNum) {
+        midi[ret._physGet(knob)] = function(channel, control, value, status, group) {
+            mixxxSet(fxgroup(groupNum), 'super1', valueFromMidi(value));
+            // mix should very quickly hit max (note that we rely on mixxx to 'clip' the value
+            // once we hit 0x7F
+            mixxxSet(fxgroup(groupNum), 'mix', valueFromMidi(value*value / 4));
+        };
+        midi[ret._physGet(latch)] = function(channel, control, value, status, group) {
+            if (value == 0x7F) {
+                mixxxToggle(fxgroup(groupNum), 'enabled');
+                sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+            }
+        };
+        sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+    };
+
+    makeFxControl('knob1', 'fxBtn1', 1);
+    makeFxControl('knob2', 'fxBtn2', 2);
+    //makeFxControl('knob3', 'fxBtn3', 3);
+    // reverb needs special handling: 1) damping inversed 2) set parameter2 instead of super1
+    (function(knob, latch, groupNum) {
+        midi[ret._physGet(knob)] = function(channel, control, value, status, group) {
+            mixxxSet('[EffectRack1_EffectUnit3_Effect1]', 'parameter2', valueFromMidi(0x7F - value));
+            mixxxSet(fxgroup(groupNum), 'mix', valueFromMidi(value*value / 4));
+        };
+        midi[ret._physGet(latch)] = function(channel, control, value, status, group) {
+            if (value == 0x7F) {
+                mixxxToggle(fxgroup(groupNum), 'enabled');
+                sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+            }
+        };
+        sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+    })('knob3', 'fxBtn3', 3);
+    makeFxControl('knob4', 'fxBtn4', 4);
+    // Note that 'L_knob3' and 'R_knob3' is reserved for the deck-specific filter effect
+
+    ret.midi = midi;
+    return ret;
+};
+
 sp1.init = function(id, debugging) {
     sp1.id        = id;
     sp1.debugging = debugging;
 
     try
     {
+        sp1.fx = makeFx();
         sp1.deck1 = makeDeck(1);
         sp1.deck2 = makeDeck(2);
         sp1.deck3 = makeDeck(3);
@@ -734,7 +725,6 @@ sp1.init = function(id, debugging) {
     }
 
     midi.sendSysexMsg(ControllerStatusSysex, ControllerStatusSysex.length);
-
 };
 
 sp1.shutdown = function() {
@@ -786,6 +776,12 @@ sp1.buildDispatchMap = function() {
             wrapper = function(physKey) { return function(args) {
                 var middle = sp1.middle;
                 logicalSurfaceCall(physKey, middle, arguments);
+            }
+            } (physKeys[i]);
+        } else if (physKeys[i].indexOf('F_') == 0) {
+            wrapper = function(physKey) { return function(args) {
+                var fx = sp1.fx;
+                logicalSurfaceCall(physKey, fx, arguments);
             }
             } (physKeys[i]);
         }
