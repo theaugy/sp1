@@ -8,201 +8,807 @@ var sp1 = {};
 
 // each button/knob/etc. on the sp1 surface is identified by a status+midinumber pair.
 // The map is ordered:
-// left-to-right
-// top-to-bottom
-// F_ prefixes controls that are in the 'effects' region
-// L_ prefixes controls that are in the 'left deck' region
-// R_ prefixes controls that are in the 'right deck' region
-// M_ prefixes controls that are in the middle region (between the vertical white dividing lines)
-// _shift suffixes controls while the shift key is pressed
 // Note that there is a space before the comma because I use an awk script to generate the xml for
 // .midi.xml, and not having to hack off the comma keeps that script a bit simpler.
 sp1.midiMap = {
-    F_knob1: [ 0xB4 , 0x02 , {led: false , type: 'knob'}] ,
-    F_knob1_shift: [ 0xB4 , 0x12 , {led: false , type: 'knob'}] ,
-    F_knob1Detail: [ 0xB4 , 0x22 , {led: false , type: 'detail'}] ,
-    F_knob1Detail_shift: [ 0xB4 , 0x32 , {led: false , type: 'detail'}] ,
-    F_knob2: [ 0xB4 , 0x04 , {led: false , type: 'knob'}] ,
-    F_knob2_shift: [ 0xB4 , 0x14 , {led: false , type: 'knob'}] ,
-    F_knob2Detail: [ 0xB4 , 0x24 , {led: false , type: 'detail'}] ,
-    F_knob2Detail_shift: [ 0xB4 , 0x34 , {led: false , type: 'detail'}] ,
-
-    L_knob3: [ 0xB4 , 0x06 , {led: false , type: 'knob'}] ,
-    L_knob3_shift: [ 0xB4 , 0x16 , {led: false , type: 'knob'}] ,
-    L_knob3Detail: [ 0xB4 , 0x26 , {led: false , type: 'detail'}] ,
-    L_knob3Detail_shift: [ 0xB4 , 0x36 , {led: false , type: 'detail'}] ,
-
-    L_beatRotary: [ 0xB4 , 0x00 , {led: false , type: 'rotary'}] ,
-    L_beatRotary_shift: [ 0xB4 , 0x10 , {led: false , type: 'rotary'}] ,
-    L_beatRotaryBtn: [ 0x94 , 0x43 , {led: false , type: 'button'}] ,
-    L_beatRotaryBtn_shift: [ 0x94 , 0x40 , {led: false , type: 'button'}] ,
-    F_fxBtn1: [ 0x94 , 0x47 , {led: true , type: 'button'}] ,
-    F_fxBtn2: [ 0x94 , 0x48 , {led: true , type: 'button'}] ,
-    L_fxBtn3: [ 0x94 , 0x49 , {led: true , type: 'button'}] ,
-    L_beatBtn: [ 0x94 , 0x4A , {led: true , type: 'button'}] ,
-    L_sync: [ 0x90 , 0x58 , {led: true , type: 'button'}] ,
-    L_sync_shift: [ 0x90 , 0x5C , {led: true , type: 'button'}] ,
-    // the slip button sends 2 signals: a 'latch' , which automatically translates presses into latches ,
-    // and a regular button , which sends a midi signal on down and up like any other button/pad
-    L_slipLatch: [ 0x90 , 0x3B , {led: true , type: 'latch'}] ,
-    L_slipBtn: [ 0x90 , 0x40 , {led: true , type: 'button'}] ,
-    // the censor button , however , does not have a 'latch' midi signal.
-    L_censor: [ 0x90 , 0x15 , {led: true , type: 'button'}] ,
-    L_paramBackHotcue: [ 0x90 , 0x24 , {led: true , type: 'button'}] ,
-    L_paramForwardHotcue: [ 0x90 , 0x2C , {led: true , type: 'button'}] ,
-    L_paramBackRoll: [ 0x90 , 0x25 , {led: true , type: 'button'}] ,
-    L_paramBackRoll_shift: [ 0x90 , 0x02 , {led: true , type: 'button'}] ,
-    L_paramForwardRoll: [ 0x90 , 0x2D , {led: true , type: 'button'}] ,
-    L_paramForwardRoll_shift: [ 0x90 , 0x7A , {led: true , type: 'button'}] ,
-    L_loopRotary: [ 0xB0 , 0x17 , {led: false , type: 'rotary'}] ,
-    L_loopRotaryBtn: [ 0x90 , 0x0D , {led: false , type: 'button'}] ,
-    L_hotCue: [ 0x90 , 0x1B , {led: true , type: 'button'}] ,
-    L_roll: [ 0x90 , 0x1E , {led: true , type: 'button'}] ,
-    L_slicer: [ 0x90 , 0x20 , {led: true , type: 'button'}] ,
-    L_sampler: [ 0x90 , 0x22 , {led: true , type: 'button'}] ,
-
-    // the sp1 does some trickyness with internal state: if you light up, for instance,
-    // 'roll', it will start sending different midi messages from the pads.
-    // Rather that make some kind of hierarchy here, we'll just assign those pads ascending
-    // values.
-
-    // hot cue pads
-    L_pad1: [ 0x97 , 0x00 , {led: true , type: 'button'}] ,
-    L_pad2: [ 0x97 , 0x01 , {led: true , type: 'button'}] ,
-    L_pad3: [ 0x97 , 0x02 , {led: true , type: 'button'}] ,
-    L_pad4: [ 0x97 , 0x03 , {led: true , type: 'button'}] ,
-    L_pad5: [ 0x97 , 0x04 , {led: true , type: 'button'}] ,
-    L_pad6: [ 0x97 , 0x05 , {led: true , type: 'button'}] ,
-    L_pad7: [ 0x97 , 0x06 , {led: true , type: 'button'}] ,
-    L_pad8: [ 0x97 , 0x07 , {led: true , type: 'button'}] ,
-
-    // roll pads
-    L_pad9:  [ 0x97 , 0x10 , {led: true , type: 'button'}] ,
-    L_pad10: [ 0x97 , 0x11 , {led: true , type: 'button'}] ,
-    L_pad11: [ 0x97 , 0x12 , {led: true , type: 'button'}] ,
-    L_pad12: [ 0x97 , 0x13 , {led: true , type: 'button'}] ,
-    L_pad13: [ 0x97 , 0x14 , {led: true , type: 'button'}] ,
-    L_pad14: [ 0x97 , 0x15 , {led: true , type: 'button'}] ,
-    L_pad15: [ 0x97 , 0x16 , {led: true , type: 'button'}] ,
-    L_pad16: [ 0x97 , 0x17 , {led: true , type: 'button'}] ,
-
-    // slicer pads: MIDINUMBERS NOT YET CONFIRMED
-    L_pad17: [ 0x97 , 0x20 , {led: true , type: 'button'}] ,
-    L_pad18: [ 0x97 , 0x21 , {led: true , type: 'button'}] ,
-    L_pad19: [ 0x97 , 0x22 , {led: true , type: 'button'}] ,
-    L_pad20: [ 0x97 , 0x23 , {led: true , type: 'button'}] ,
-    L_pad21: [ 0x97 , 0x24 , {led: true , type: 'button'}] ,
-    L_pad22: [ 0x97 , 0x25 , {led: true , type: 'button'}] ,
-    L_pad23: [ 0x97 , 0x26 , {led: true , type: 'button'}] ,
-    L_pad24: [ 0x97 , 0x27 , {led: true , type: 'button'}] ,
-
-    // sampler pads: MIDINUMBERS NOT YET CONFIRMED
-    L_pad25: [ 0x97 , 0x30 , {led: true , type: 'button'}] ,
-    L_pad26: [ 0x97 , 0x31 , {led: true , type: 'button'}] ,
-    L_pad27: [ 0x97 , 0x32 , {led: true , type: 'button'}] ,
-    L_pad28: [ 0x97 , 0x33 , {led: true , type: 'button'}] ,
-    L_pad29: [ 0x97 , 0x34 , {led: true , type: 'button'}] ,
-    L_pad30: [ 0x97 , 0x35 , {led: true , type: 'button'}] ,
-    L_pad31: [ 0x97 , 0x36 , {led: true , type: 'button'}] ,
-    L_pad32: [ 0x97 , 0x37 , {led: true , type: 'button'}] ,
-
-    F_knob3: [ 0xB5 , 0x02 , {led: false , type: 'knob'}] ,
-    F_knob3_shift: [ 0xB5 , 0x12 , {led: false , type: 'knob'}] ,
-    F_knob3Detail: [ 0xB5 , 0x22 , {led: false , type: 'detail'}] ,
-    F_knob3Detail_shift: [ 0xB5 , 0x32 , {led: false , type: 'detail'}] ,
-    F_knob4: [ 0xB5 , 0x04 , {led: false , type: 'knob'}] ,
-    F_knob4_shift: [ 0xB5 , 0x14 , {led: false , type: 'knob'}] ,
-    F_knob4Detail: [ 0xB5 , 0x24 , {led: false , type: 'detail'}] ,
-    F_knob4Detail_shift: [ 0xB5 , 0x34 , {led: false , type: 'detail'}] ,
-
-    R_knob3: [ 0xB5 , 0x06 , {led: false , type: 'knob'}] ,
-    R_knob3_shift: [ 0xB5 , 0x16 , {led: false , type: 'knob'}] ,
-    R_knob3Detail: [ 0xB5 , 0x26 , {led: false , type: 'detail'}] ,
-    R_knob3Detail_shift: [ 0xB5 , 0x36 , {led: false , type: 'detail'}] ,
-
-    R_beatRotary: [ 0xB5 , 0x00 , {led: false , type: 'rotary'}] ,
-    R_beatRotary_shift: [ 0xB5 , 0x10 , {led: false , type: 'rotary'}] ,
-    R_beatRotaryBtn: [ 0x95 , 0x43 , {led: false , type: 'button'}] ,
-    R_beatRotaryBtn_shift: [ 0x95 , 0x40 , {led: false , type: 'button'}] ,
-    F_fxBtn3: [ 0x95 , 0x47 , {led: true , type: 'button'}] ,
-    F_fxBtn4: [ 0x95 , 0x48 , {led: true , type: 'button'}] ,
-    R_fxBtn3: [ 0x95 , 0x49 , {led: true , type: 'button'}] ,
-    R_beatBtn: [ 0x95 , 0x4A , {led: true , type: 'button'}] ,
-    R_sync: [ 0x91 , 0x58 , {led: true , type: 'button'}] ,
-    R_sync_shift: [ 0x91 , 0x5C , {led: true , type: 'button'}] ,
-    R_slipLatch: [ 0x91 , 0x3B , {led: true , type: 'latch'}] ,
-    R_slipBtn: [ 0x91 , 0x40 , {led: true , type: 'button'}] ,
-    R_censor: [ 0x91 , 0x15 , {led: true , type: 'button'}] ,
-    R_paramBackHotcue: [ 0x91 , 0x24 , {led: true , type: 'button'}] ,
-    R_paramBackRoll: [ 0x91 , 0x25 , {led: true , type: 'button'}] ,
-    R_paramBackRoll_shift: [ 0x91 , 0x02 , {led: true , type: 'button'}] ,
-    R_paramForwardHotcue: [ 0x91 , 0x2C , {led: true , type: 'button'}] ,
-    R_paramForwardRoll: [ 0x91 , 0x2D , {led: true , type: 'button'}] ,
-    R_paramForwardRoll_shift: [ 0x91 , 0x7A , {led: true , type: 'button'}] ,
-    R_loopRotary: [ 0xB1 , 0x17 , {led: false , type: 'rotary'}] ,
-    R_loopRotaryBtn: [ 0x91 , 0x0D , {led: false , type: 'button'}] ,
-    R_hotCue: [ 0x91 , 0x1B , {led: true , type: 'button'}] ,
-    R_roll: [ 0x91 , 0x1E , {led: true , type: 'button'}] ,
-    R_slicer: [ 0x91 , 0x20 , {led: true , type: 'button'}] ,
-    R_sampler: [ 0x91 , 0x22 , {led: true , type: 'button'}] ,
-
-    // hot cue pads
-    R_pad1: [ 0x98 , 0x00 , {led: true , type: 'button'}] ,
-    R_pad2: [ 0x98 , 0x01 , {led: true , type: 'button'}] ,
-    R_pad3: [ 0x98 , 0x02 , {led: true , type: 'button'}] ,
-    R_pad4: [ 0x98 , 0x03 , {led: true , type: 'button'}] ,
-    R_pad5: [ 0x98 , 0x04 , {led: true , type: 'button'}] ,
-    R_pad6: [ 0x98 , 0x05 , {led: true , type: 'button'}] ,
-    R_pad7: [ 0x98 , 0x06 , {led: true , type: 'button'}] ,
-    R_pad8: [ 0x98 , 0x07 , {led: true , type: 'button'}] ,
-
-    // roll pads
-    R_pad9:  [ 0x98 , 0x10 , {led: true , type: 'button'}] ,
-    R_pad10: [ 0x98 , 0x11 , {led: true , type: 'button'}] ,
-    R_pad11: [ 0x98 , 0x12 , {led: true , type: 'button'}] ,
-    R_pad12: [ 0x98 , 0x13 , {led: true , type: 'button'}] ,
-    R_pad13: [ 0x98 , 0x14 , {led: true , type: 'button'}] ,
-    R_pad14: [ 0x98 , 0x15 , {led: true , type: 'button'}] ,
-    R_pad15: [ 0x98 , 0x16 , {led: true , type: 'button'}] ,
-    R_pad16: [ 0x98 , 0x17 , {led: true , type: 'button'}] ,
-
-    // slicer pads: MIDINUMBERS NOT YET CONFIRMED
-    R_pad17: [ 0x98 , 0x20 , {led: true , type: 'button'}] ,
-    R_pad18: [ 0x98 , 0x21 , {led: true , type: 'button'}] ,
-    R_pad19: [ 0x98 , 0x22 , {led: true , type: 'button'}] ,
-    R_pad20: [ 0x98 , 0x23 , {led: true , type: 'button'}] ,
-    R_pad21: [ 0x98 , 0x24 , {led: true , type: 'button'}] ,
-    R_pad22: [ 0x98 , 0x25 , {led: true , type: 'button'}] ,
-    R_pad23: [ 0x98 , 0x26 , {led: true , type: 'button'}] ,
-    R_pad24: [ 0x98 , 0x27 , {led: true , type: 'button'}] ,
-
-    // sampler pads: MIDINUMBERS NOT YET CONFIRMED
-    R_pad25: [ 0x98 , 0x30 , {led: true , type: 'button'}] ,
-    R_pad26: [ 0x98 , 0x31 , {led: true , type: 'button'}] ,
-    R_pad27: [ 0x98 , 0x32 , {led: true , type: 'button'}] ,
-    R_pad28: [ 0x98 , 0x33 , {led: true , type: 'button'}] ,
-    R_pad29: [ 0x98 , 0x34 , {led: true , type: 'button'}] ,
-    R_pad30: [ 0x98 , 0x35 , {led: true , type: 'button'}] ,
-    R_pad31: [ 0x98 , 0x36 , {led: true , type: 'button'}] ,
-    R_pad32: [ 0x98 , 0x37 , {led: true , type: 'button'}] ,
-
-    M_fxLdeck1: [ 0x96 , 0x4C , {led: true , type: 'button'}] ,
-    M_fxRdeck1: [ 0x96 , 0x50 , {led: true , type: 'button'}] ,
-    M_fxLdeck2: [ 0x96 , 0x4D , {led: true , type: 'button'}] ,
-    M_fxRdeck2: [ 0x96 , 0x51 , {led: true , type: 'button'}] ,
-    M_LdeckSelect: [ 0x92 , 0x72 , {led: true , type: 'button'}] ,
-    M_RdeckSelect: [ 0x93 , 0x72 , {led: true , type: 'button'}] ,
-    M_rotary: [ 0xB6 , 0x40 , {led: false , type: 'rotary'}] ,
-    M_rotaryBtn: [ 0x96 , 0x41 , {led: false , type: 'button'}] ,
-    M_backUtil: [ 0x96 , 0x65 , {led: false , type: 'button'}] ,
-    M_loadPrep: [ 0x96 , 0x67 , {led: false , type: 'button'}] ,
-    M_loadL: [ 0x96 , 0x46 , {led: true , type: 'button'}] ,
-    M_loadL_shift: [ 0x96 , 0x58 , {led: true , type: 'button'}] ,
-    M_loadR: [ 0x96 , 0x47 , {led: true , type: 'button'}] ,
-    M_loadR_shift: [ 0x96 , 0x59 , {led: true , type: 'button'}] ,
-    M_shift: [ 0x96 , 0x40 , {led: false , type: 'button'}] ,
-    M_vol: [ 0xB6 , 0x03 , {led: false , type: 'knob'}] ,
-    M_volDetail: [ 0xB6 , 0x23 , {led: false , type: 'detail'}]
+deck1_anymode_shiftoff_autoloop:       [  0xB0  ,  0x17  ,  {  led:  false,  type:  "button"  }  ],
+deck1_anymode_shiftoff_autoloopBtn:    [  0x90  ,  0x0D  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shiftoff_censor:         [  0x90  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shiftoff_slip:           [  0x90  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shiftoff_sync:           [  0x90  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shifton_autoloop:        [  0xB0  ,  0x37  ,  {  led:  false,  type:  "button"  }  ],
+deck1_anymode_shifton_autoloopBtn:     [  0x9E  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shifton_censor:          [  0x90  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shifton_slip:            [  0x90  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck1_anymode_shifton_sync:            [  0x90  ,  0x5C  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop:                        [  0x90  ,  0x6B  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad1:          [  0x97  ,  0x50  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad2:          [  0x97  ,  0x51  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad3:          [  0x97  ,  0x52  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad4:          [  0x97  ,  0x53  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad5:          [  0x97  ,  0x54  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad6:          [  0x97  ,  0x55  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad7:          [  0x97  ,  0x56  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_pad8:          [  0x97  ,  0x57  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_paramLeft:     [  0x90  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shiftoff_paramRight:    [  0x90  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad1:           [  0x97  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad2:           [  0x97  ,  0x59  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad3:           [  0x97  ,  0x5a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad4:           [  0x97  ,  0x5b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad5:           [  0x97  ,  0x5c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad6:           [  0x97  ,  0x5d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad7:           [  0x97  ,  0x5e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_pad8:           [  0x97  ,  0x5f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_paramLeft:      [  0x90  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck1_autoloop_shifton_paramRight:     [  0x90  ,  0x7E  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue:                          [  0x90  ,  0x1B  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad1:            [  0x97  ,  0x00  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad2:            [  0x97  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad3:            [  0x97  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad4:            [  0x97  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad5:            [  0x97  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad6:            [  0x97  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad7:            [  0x97  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_pad8:            [  0x97  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_paramLeft:       [  0x90  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shiftoff_paramRight:      [  0x90  ,  0x2C  ,  {  led:  false,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad1:             [  0x97  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad2:             [  0x97  ,  0x09  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad3:             [  0x97  ,  0x0a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad4:             [  0x97  ,  0x0b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad5:             [  0x97  ,  0x0c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad6:             [  0x97  ,  0x0d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad7:             [  0x97  ,  0x0e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_pad8:             [  0x97  ,  0x0f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_paramLeft:        [  0x90  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotcue_shifton_paramRight:       [  0x90  ,  0x09  ,  {  led:  false,  type:  "button"  }  ],
+deck1_hotloop:                         [  0x90  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad1:           [  0x97  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad2:           [  0x97  ,  0x41  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad3:           [  0x97  ,  0x42  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad4:           [  0x97  ,  0x43  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad5:           [  0x97  ,  0x44  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad6:           [  0x97  ,  0x45  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad7:           [  0x97  ,  0x46  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_pad8:           [  0x97  ,  0x47  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_paramLeft:      [  0x90  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shiftoff_paramRight:     [  0x90  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad1:            [  0x97  ,  0x48  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad2:            [  0x97  ,  0x49  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad3:            [  0x97  ,  0x4a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad4:            [  0x97  ,  0x4b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad5:            [  0x97  ,  0x4c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad6:            [  0x97  ,  0x4d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad7:            [  0x97  ,  0x4e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_pad8:            [  0x97  ,  0x4f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_paramLeft:       [  0x90  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck1_hotloop_shifton_paramRight:      [  0x90  ,  0x7D  ,  {  led:  false,  type:  "button"  }  ],
+deck1_manualloop:                      [  0x90  ,  0x6D  ,  {  led:  false,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad1:        [  0x97  ,  0x60  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad2:        [  0x97  ,  0x61  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad3:        [  0x97  ,  0x62  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad4:        [  0x97  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad5:        [  0x97  ,  0x64  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad6:        [  0x97  ,  0x65  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad7:        [  0x97  ,  0x66  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_pad8:        [  0x97  ,  0x67  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_paramLeft:   [  0x90  ,  0x2A  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shiftoff_paramRight:  [  0x90  ,  0x32  ,  {  led:  false,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad1:         [  0x97  ,  0x68  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad2:         [  0x97  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad3:         [  0x97  ,  0x6a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad4:         [  0x97  ,  0x6b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad5:         [  0x97  ,  0x6c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad6:         [  0x97  ,  0x6d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad7:         [  0x97  ,  0x6e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_pad8:         [  0x97  ,  0x6f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_paramLeft:    [  0x90  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck1_manualloop_shifton_paramRight:   [  0x90  ,  0x7F  ,  {  led:  false,  type:  "button"  }  ],
+deck1_roll:                            [  0x90  ,  0x1E  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad1:              [  0x97  ,  0x10  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad2:              [  0x97  ,  0x11  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad3:              [  0x97  ,  0x12  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad4:              [  0x97  ,  0x13  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad5:              [  0x97  ,  0x14  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad6:              [  0x97  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad7:              [  0x97  ,  0x16  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_pad8:              [  0x97  ,  0x17  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_paramLeft:         [  0x90  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shiftoff_paramRight:        [  0x90  ,  0x2D  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad1:               [  0x97  ,  0x18  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad2:               [  0x97  ,  0x19  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad3:               [  0x97  ,  0x1a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad4:               [  0x97  ,  0x1b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad5:               [  0x97  ,  0x1c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad6:               [  0x97  ,  0x1d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad7:               [  0x97  ,  0x1e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_pad8:               [  0x97  ,  0x1f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_paramLeft:          [  0x90  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck1_roll_shifton_paramRight:         [  0x90  ,  0x7A  ,  {  led:  false,  type:  "button"  }  ],
+deck1_sampler:                         [  0x90  ,  0x22  ,  {  led:  false,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad1:           [  0x97  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad2:           [  0x97  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad3:           [  0x97  ,  0x32  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad4:           [  0x97  ,  0x33  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad5:           [  0x97  ,  0x34  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad6:           [  0x97  ,  0x35  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad7:           [  0x97  ,  0x36  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_pad8:           [  0x97  ,  0x37  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_paramLeft:      [  0x90  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shiftoff_paramRight:     [  0x90  ,  0x2F  ,  {  led:  false,  type:  "button"  }  ],
+deck1_sampler_shifton_pad1:            [  0x97  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad2:            [  0x97  ,  0x39  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad3:            [  0x97  ,  0x3a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad4:            [  0x97  ,  0x3b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad5:            [  0x97  ,  0x3c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad6:            [  0x97  ,  0x3d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad7:            [  0x97  ,  0x3e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_pad8:            [  0x97  ,  0x3f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_paramLeft:       [  0x90  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck1_sampler_shifton_paramRight:      [  0x90  ,  0x7C  ,  {  led:  false,  type:  "button"  }  ],
+deck1_slicer:                          [  0x90  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad1:            [  0x97  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad2:            [  0x97  ,  0x21  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad3:            [  0x97  ,  0x22  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad4:            [  0x97  ,  0x23  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad5:            [  0x97  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad6:            [  0x97  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad7:            [  0x97  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_pad8:            [  0x97  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_paramLeft:       [  0x90  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shiftoff_paramRight:      [  0x90  ,  0x2E  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad1:             [  0x97  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad2:             [  0x97  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad3:             [  0x97  ,  0x2a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad4:             [  0x97  ,  0x2b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad5:             [  0x97  ,  0x2c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad6:             [  0x97  ,  0x2d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad7:             [  0x97  ,  0x2e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_pad8:             [  0x97  ,  0x2f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_paramLeft:        [  0x90  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck1_slicer_shifton_paramRight:       [  0x90  ,  0x7B  ,  {  led:  false,  type:  "button"  }  ],
+deck1_velocity:                        [  0x90  ,  0x6F  ,  {  led:  false,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad1:          [  0x97  ,  0x70  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad2:          [  0x97  ,  0x71  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad3:          [  0x97  ,  0x72  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad4:          [  0x97  ,  0x73  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad5:          [  0x97  ,  0x74  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad6:          [  0x97  ,  0x75  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad7:          [  0x97  ,  0x76  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_pad8:          [  0x97  ,  0x77  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_paramLeft:     [  0x90  ,  0x2B  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shiftoff_paramRight:    [  0x90  ,  0x33  ,  {  led:  false,  type:  "button"  }  ],
+deck1_velocity_shifton_pad1:           [  0x97  ,  0x78  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad2:           [  0x97  ,  0x79  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad3:           [  0x97  ,  0x7a  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad4:           [  0x97  ,  0x7b  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad5:           [  0x97  ,  0x7c  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad6:           [  0x97  ,  0x7d  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad7:           [  0x97  ,  0x7e  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_pad8:           [  0x97  ,  0x7f  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_paramLeft:      [  0x90  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck1_velocity_shifton_paramRight:     [  0x90  ,  0x00  ,  {  led:  false,  type:  "button"  }  ],
+deck2_anymode_shiftoff_autoloop:       [  0xB1  ,  0x17  ,  {  led:  false,  type:  "button"  }  ],
+deck2_anymode_shiftoff_autoloopBtn:    [  0x91  ,  0x0D  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shiftoff_censor:         [  0x91  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shiftoff_slip:           [  0x91  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shiftoff_sync:           [  0x91  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shifton_autoloop:        [  0xB1  ,  0x37  ,  {  led:  false,  type:  "button"  }  ],
+deck2_anymode_shifton_autoloopBtn:     [  0x9E  ,  0x12  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shifton_censor:          [  0x91  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shifton_slip:            [  0x91  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck2_anymode_shifton_sync:            [  0x91  ,  0x5C  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop:                        [  0x91  ,  0x6B  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad1:          [  0x98  ,  0x50  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad2:          [  0x98  ,  0x51  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad3:          [  0x98  ,  0x52  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad4:          [  0x98  ,  0x53  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad5:          [  0x98  ,  0x54  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad6:          [  0x98  ,  0x55  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad7:          [  0x98  ,  0x56  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_pad8:          [  0x98  ,  0x57  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_paramLeft:     [  0x91  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shiftoff_paramRight:    [  0x91  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad1:           [  0x98  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad2:           [  0x98  ,  0x59  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad3:           [  0x98  ,  0x5a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad4:           [  0x98  ,  0x5b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad5:           [  0x98  ,  0x5c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad6:           [  0x98  ,  0x5d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad7:           [  0x98  ,  0x5e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_pad8:           [  0x98  ,  0x5f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_paramLeft:      [  0x91  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck2_autoloop_shifton_paramRight:     [  0x91  ,  0x7E  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue:                          [  0x91  ,  0x1B  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad1:            [  0x98  ,  0x00  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad2:            [  0x98  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad3:            [  0x98  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad4:            [  0x98  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad5:            [  0x98  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad6:            [  0x98  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad7:            [  0x98  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_pad8:            [  0x98  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_paramLeft:       [  0x91  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shiftoff_paramRight:      [  0x91  ,  0x2C  ,  {  led:  false,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad1:             [  0x98  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad2:             [  0x98  ,  0x09  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad3:             [  0x98  ,  0x0a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad4:             [  0x98  ,  0x0b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad5:             [  0x98  ,  0x0c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad6:             [  0x98  ,  0x0d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad7:             [  0x98  ,  0x0e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_pad8:             [  0x98  ,  0x0f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_paramLeft:        [  0x91  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotcue_shifton_paramRight:       [  0x91  ,  0x09  ,  {  led:  false,  type:  "button"  }  ],
+deck2_hotloop:                         [  0x91  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad1:           [  0x98  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad2:           [  0x98  ,  0x41  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad3:           [  0x98  ,  0x42  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad4:           [  0x98  ,  0x43  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad5:           [  0x98  ,  0x44  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad6:           [  0x98  ,  0x45  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad7:           [  0x98  ,  0x46  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_pad8:           [  0x98  ,  0x47  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_paramLeft:      [  0x91  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shiftoff_paramRight:     [  0x91  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad1:            [  0x98  ,  0x48  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad2:            [  0x98  ,  0x49  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad3:            [  0x98  ,  0x4a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad4:            [  0x98  ,  0x4b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad5:            [  0x98  ,  0x4c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad6:            [  0x98  ,  0x4d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad7:            [  0x98  ,  0x4e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_pad8:            [  0x98  ,  0x4f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_paramLeft:       [  0x91  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck2_hotloop_shifton_paramRight:      [  0x91  ,  0x7D  ,  {  led:  false,  type:  "button"  }  ],
+deck2_manualloop:                      [  0x91  ,  0x6D  ,  {  led:  false,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad1:        [  0x98  ,  0x60  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad2:        [  0x98  ,  0x61  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad3:        [  0x98  ,  0x62  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad4:        [  0x98  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad5:        [  0x98  ,  0x64  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad6:        [  0x98  ,  0x65  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad7:        [  0x98  ,  0x66  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_pad8:        [  0x98  ,  0x67  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_paramLeft:   [  0x91  ,  0x2A  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shiftoff_paramRight:  [  0x91  ,  0x32  ,  {  led:  false,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad1:         [  0x98  ,  0x68  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad2:         [  0x98  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad3:         [  0x98  ,  0x6a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad4:         [  0x98  ,  0x6b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad5:         [  0x98  ,  0x6c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad6:         [  0x98  ,  0x6d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad7:         [  0x98  ,  0x6e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_pad8:         [  0x98  ,  0x6f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_paramLeft:    [  0x91  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck2_manualloop_shifton_paramRight:   [  0x91  ,  0x7F  ,  {  led:  false,  type:  "button"  }  ],
+deck2_roll:                            [  0x91  ,  0x1E  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad1:              [  0x98  ,  0x10  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad2:              [  0x98  ,  0x11  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad3:              [  0x98  ,  0x12  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad4:              [  0x98  ,  0x13  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad5:              [  0x98  ,  0x14  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad6:              [  0x98  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad7:              [  0x98  ,  0x16  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_pad8:              [  0x98  ,  0x17  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_paramLeft:         [  0x91  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shiftoff_paramRight:        [  0x91  ,  0x2D  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad1:               [  0x98  ,  0x18  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad2:               [  0x98  ,  0x19  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad3:               [  0x98  ,  0x1a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad4:               [  0x98  ,  0x1b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad5:               [  0x98  ,  0x1c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad6:               [  0x98  ,  0x1d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad7:               [  0x98  ,  0x1e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_pad8:               [  0x98  ,  0x1f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_paramLeft:          [  0x91  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck2_roll_shifton_paramRight:         [  0x91  ,  0x7A  ,  {  led:  false,  type:  "button"  }  ],
+deck2_sampler:                         [  0x91  ,  0x22  ,  {  led:  false,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad1:           [  0x98  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad2:           [  0x98  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad3:           [  0x98  ,  0x32  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad4:           [  0x98  ,  0x33  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad5:           [  0x98  ,  0x34  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad6:           [  0x98  ,  0x35  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad7:           [  0x98  ,  0x36  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_pad8:           [  0x98  ,  0x37  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_paramLeft:      [  0x91  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shiftoff_paramRight:     [  0x91  ,  0x2F  ,  {  led:  false,  type:  "button"  }  ],
+deck2_sampler_shifton_pad1:            [  0x98  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad2:            [  0x98  ,  0x39  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad3:            [  0x98  ,  0x3a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad4:            [  0x98  ,  0x3b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad5:            [  0x98  ,  0x3c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad6:            [  0x98  ,  0x3d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad7:            [  0x98  ,  0x3e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_pad8:            [  0x98  ,  0x3f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_paramLeft:       [  0x91  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck2_sampler_shifton_paramRight:      [  0x91  ,  0x7C  ,  {  led:  false,  type:  "button"  }  ],
+deck2_slicer:                          [  0x91  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad1:            [  0x98  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad2:            [  0x98  ,  0x21  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad3:            [  0x98  ,  0x22  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad4:            [  0x98  ,  0x23  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad5:            [  0x98  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad6:            [  0x98  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad7:            [  0x98  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_pad8:            [  0x98  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_paramLeft:       [  0x91  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shiftoff_paramRight:      [  0x91  ,  0x2E  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad1:             [  0x98  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad2:             [  0x98  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad3:             [  0x98  ,  0x2a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad4:             [  0x98  ,  0x2b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad5:             [  0x98  ,  0x2c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad6:             [  0x98  ,  0x2d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad7:             [  0x98  ,  0x2e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_pad8:             [  0x98  ,  0x2f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_paramLeft:        [  0x91  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck2_slicer_shifton_paramRight:       [  0x91  ,  0x7B  ,  {  led:  false,  type:  "button"  }  ],
+deck2_velocity:                        [  0x91  ,  0x6F  ,  {  led:  false,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad1:          [  0x98  ,  0x70  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad2:          [  0x98  ,  0x71  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad3:          [  0x98  ,  0x72  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad4:          [  0x98  ,  0x73  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad5:          [  0x98  ,  0x74  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad6:          [  0x98  ,  0x75  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad7:          [  0x98  ,  0x76  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_pad8:          [  0x98  ,  0x77  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_paramLeft:     [  0x91  ,  0x2B  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shiftoff_paramRight:    [  0x91  ,  0x33  ,  {  led:  false,  type:  "button"  }  ],
+deck2_velocity_shifton_pad1:           [  0x98  ,  0x78  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad2:           [  0x98  ,  0x79  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad3:           [  0x98  ,  0x7a  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad4:           [  0x98  ,  0x7b  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad5:           [  0x98  ,  0x7c  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad6:           [  0x98  ,  0x7d  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad7:           [  0x98  ,  0x7e  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_pad8:           [  0x98  ,  0x7f  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_paramLeft:      [  0x91  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck2_velocity_shifton_paramRight:     [  0x91  ,  0x00  ,  {  led:  false,  type:  "button"  }  ],
+deck3_anymode_shiftoff_autoloop:       [  0xB2  ,  0x17  ,  {  led:  false,  type:  "button"  }  ],
+deck3_anymode_shiftoff_autoloopBtn:    [  0x92  ,  0x0D  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shiftoff_censor:         [  0x92  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shiftoff_slip:           [  0x92  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shiftoff_sync:           [  0x92  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shifton_autoloop:        [  0xB2  ,  0x37  ,  {  led:  false,  type:  "button"  }  ],
+deck3_anymode_shifton_autoloopBtn:     [  0x9E  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shifton_censor:          [  0x92  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shifton_slip:            [  0x92  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck3_anymode_shifton_sync:            [  0x92  ,  0x5C  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop:                        [  0x92  ,  0x6B  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad1:          [  0x99  ,  0x50  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad2:          [  0x99  ,  0x51  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad3:          [  0x99  ,  0x52  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad4:          [  0x99  ,  0x53  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad5:          [  0x99  ,  0x54  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad6:          [  0x99  ,  0x55  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad7:          [  0x99  ,  0x56  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_pad8:          [  0x99  ,  0x57  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_paramLeft:     [  0x92  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shiftoff_paramRight:    [  0x92  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad1:           [  0x99  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad2:           [  0x99  ,  0x59  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad3:           [  0x99  ,  0x5a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad4:           [  0x99  ,  0x5b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad5:           [  0x99  ,  0x5c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad6:           [  0x99  ,  0x5d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad7:           [  0x99  ,  0x5e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_pad8:           [  0x99  ,  0x5f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_paramLeft:      [  0x92  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck3_autoloop_shifton_paramRight:     [  0x92  ,  0x7E  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue:                          [  0x92  ,  0x1B  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad1:            [  0x99  ,  0x00  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad2:            [  0x99  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad3:            [  0x99  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad4:            [  0x99  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad5:            [  0x99  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad6:            [  0x99  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad7:            [  0x99  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_pad8:            [  0x99  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_paramLeft:       [  0x92  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shiftoff_paramRight:      [  0x92  ,  0x2C  ,  {  led:  false,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad1:             [  0x99  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad2:             [  0x99  ,  0x09  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad3:             [  0x99  ,  0x0a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad4:             [  0x99  ,  0x0b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad5:             [  0x99  ,  0x0c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad6:             [  0x99  ,  0x0d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad7:             [  0x99  ,  0x0e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_pad8:             [  0x99  ,  0x0f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_paramLeft:        [  0x92  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotcue_shifton_paramRight:       [  0x92  ,  0x09  ,  {  led:  false,  type:  "button"  }  ],
+deck3_hotloop:                         [  0x92  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad1:           [  0x99  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad2:           [  0x99  ,  0x41  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad3:           [  0x99  ,  0x42  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad4:           [  0x99  ,  0x43  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad5:           [  0x99  ,  0x44  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad6:           [  0x99  ,  0x45  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad7:           [  0x99  ,  0x46  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_pad8:           [  0x99  ,  0x47  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_paramLeft:      [  0x92  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shiftoff_paramRight:     [  0x92  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad1:            [  0x99  ,  0x48  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad2:            [  0x99  ,  0x49  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad3:            [  0x99  ,  0x4a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad4:            [  0x99  ,  0x4b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad5:            [  0x99  ,  0x4c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad6:            [  0x99  ,  0x4d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad7:            [  0x99  ,  0x4e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_pad8:            [  0x99  ,  0x4f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_paramLeft:       [  0x92  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck3_hotloop_shifton_paramRight:      [  0x92  ,  0x7D  ,  {  led:  false,  type:  "button"  }  ],
+deck3_manualloop:                      [  0x92  ,  0x6D  ,  {  led:  false,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad1:        [  0x99  ,  0x60  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad2:        [  0x99  ,  0x61  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad3:        [  0x99  ,  0x62  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad4:        [  0x99  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad5:        [  0x99  ,  0x64  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad6:        [  0x99  ,  0x65  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad7:        [  0x99  ,  0x66  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_pad8:        [  0x99  ,  0x67  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_paramLeft:   [  0x92  ,  0x2A  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shiftoff_paramRight:  [  0x92  ,  0x32  ,  {  led:  false,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad1:         [  0x99  ,  0x68  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad2:         [  0x99  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad3:         [  0x99  ,  0x6a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad4:         [  0x99  ,  0x6b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad5:         [  0x99  ,  0x6c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad6:         [  0x99  ,  0x6d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad7:         [  0x99  ,  0x6e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_pad8:         [  0x99  ,  0x6f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_paramLeft:    [  0x92  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck3_manualloop_shifton_paramRight:   [  0x92  ,  0x7F  ,  {  led:  false,  type:  "button"  }  ],
+deck3_roll:                            [  0x92  ,  0x1E  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad1:              [  0x99  ,  0x10  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad2:              [  0x99  ,  0x11  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad3:              [  0x99  ,  0x12  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad4:              [  0x99  ,  0x13  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad5:              [  0x99  ,  0x14  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad6:              [  0x99  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad7:              [  0x99  ,  0x16  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_pad8:              [  0x99  ,  0x17  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_paramLeft:         [  0x92  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shiftoff_paramRight:        [  0x92  ,  0x2D  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad1:               [  0x99  ,  0x18  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad2:               [  0x99  ,  0x19  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad3:               [  0x99  ,  0x1a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad4:               [  0x99  ,  0x1b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad5:               [  0x99  ,  0x1c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad6:               [  0x99  ,  0x1d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad7:               [  0x99  ,  0x1e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_pad8:               [  0x99  ,  0x1f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_paramLeft:          [  0x92  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck3_roll_shifton_paramRight:         [  0x92  ,  0x7A  ,  {  led:  false,  type:  "button"  }  ],
+deck3_sampler:                         [  0x92  ,  0x22  ,  {  led:  false,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad1:           [  0x99  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad2:           [  0x99  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad3:           [  0x99  ,  0x32  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad4:           [  0x99  ,  0x33  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad5:           [  0x99  ,  0x34  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad6:           [  0x99  ,  0x35  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad7:           [  0x99  ,  0x36  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_pad8:           [  0x99  ,  0x37  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_paramLeft:      [  0x92  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shiftoff_paramRight:     [  0x92  ,  0x2F  ,  {  led:  false,  type:  "button"  }  ],
+deck3_sampler_shifton_pad1:            [  0x99  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad2:            [  0x99  ,  0x39  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad3:            [  0x99  ,  0x3a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad4:            [  0x99  ,  0x3b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad5:            [  0x99  ,  0x3c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad6:            [  0x99  ,  0x3d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad7:            [  0x99  ,  0x3e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_pad8:            [  0x99  ,  0x3f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_paramLeft:       [  0x92  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck3_sampler_shifton_paramRight:      [  0x92  ,  0x7C  ,  {  led:  false,  type:  "button"  }  ],
+deck3_slicer:                          [  0x92  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad1:            [  0x99  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad2:            [  0x99  ,  0x21  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad3:            [  0x99  ,  0x22  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad4:            [  0x99  ,  0x23  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad5:            [  0x99  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad6:            [  0x99  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad7:            [  0x99  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_pad8:            [  0x99  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_paramLeft:       [  0x92  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shiftoff_paramRight:      [  0x92  ,  0x2E  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad1:             [  0x99  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad2:             [  0x99  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad3:             [  0x99  ,  0x2a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad4:             [  0x99  ,  0x2b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad5:             [  0x99  ,  0x2c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad6:             [  0x99  ,  0x2d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad7:             [  0x99  ,  0x2e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_pad8:             [  0x99  ,  0x2f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_paramLeft:        [  0x92  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck3_slicer_shifton_paramRight:       [  0x92  ,  0x7B  ,  {  led:  false,  type:  "button"  }  ],
+deck3_velocity:                        [  0x92  ,  0x6F  ,  {  led:  false,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad1:          [  0x99  ,  0x70  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad2:          [  0x99  ,  0x71  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad3:          [  0x99  ,  0x72  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad4:          [  0x99  ,  0x73  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad5:          [  0x99  ,  0x74  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad6:          [  0x99  ,  0x75  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad7:          [  0x99  ,  0x76  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_pad8:          [  0x99  ,  0x77  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_paramLeft:     [  0x92  ,  0x2B  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shiftoff_paramRight:    [  0x92  ,  0x33  ,  {  led:  false,  type:  "button"  }  ],
+deck3_velocity_shifton_pad1:           [  0x99  ,  0x78  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad2:           [  0x99  ,  0x79  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad3:           [  0x99  ,  0x7a  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad4:           [  0x99  ,  0x7b  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad5:           [  0x99  ,  0x7c  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad6:           [  0x99  ,  0x7d  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad7:           [  0x99  ,  0x7e  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_pad8:           [  0x99  ,  0x7f  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_paramLeft:      [  0x92  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck3_velocity_shifton_paramRight:     [  0x92  ,  0x00  ,  {  led:  false,  type:  "button"  }  ],
+deck4_anymode_shiftoff_autoloop:       [  0xB3  ,  0x17  ,  {  led:  false,  type:  "button"  }  ],
+deck4_anymode_shiftoff_autoloopBtn:    [  0x93  ,  0x0D  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shiftoff_censor:         [  0x93  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shiftoff_slip:           [  0x93  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shiftoff_sync:           [  0x93  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shifton_autoloop:        [  0xB3  ,  0x37  ,  {  led:  false,  type:  "button"  }  ],
+deck4_anymode_shifton_autoloopBtn:     [  0x9E  ,  0x12  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shifton_censor:          [  0x93  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shifton_slip:            [  0x93  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck4_anymode_shifton_sync:            [  0x93  ,  0x5C  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop:                        [  0x93  ,  0x6B  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad1:          [  0x9A  ,  0x50  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad2:          [  0x9A  ,  0x51  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad3:          [  0x9A  ,  0x52  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad4:          [  0x9A  ,  0x53  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad5:          [  0x9A  ,  0x54  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad6:          [  0x9A  ,  0x55  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad7:          [  0x9A  ,  0x56  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_pad8:          [  0x9A  ,  0x57  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_paramLeft:     [  0x93  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shiftoff_paramRight:    [  0x93  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad1:           [  0x9A  ,  0x58  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad2:           [  0x9A  ,  0x59  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad3:           [  0x9A  ,  0x5a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad4:           [  0x9A  ,  0x5b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad5:           [  0x9A  ,  0x5c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad6:           [  0x9A  ,  0x5d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad7:           [  0x9A  ,  0x5e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_pad8:           [  0x9A  ,  0x5f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_paramLeft:      [  0x93  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck4_autoloop_shifton_paramRight:     [  0x93  ,  0x7E  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue:                          [  0x93  ,  0x1B  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad1:            [  0x9A  ,  0x00  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad2:            [  0x9A  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad3:            [  0x9A  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad4:            [  0x9A  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad5:            [  0x9A  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad6:            [  0x9A  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad7:            [  0x9A  ,  0x06  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_pad8:            [  0x9A  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_paramLeft:       [  0x93  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shiftoff_paramRight:      [  0x93  ,  0x2C  ,  {  led:  false,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad1:             [  0x9A  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad2:             [  0x9A  ,  0x09  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad3:             [  0x9A  ,  0x0a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad4:             [  0x9A  ,  0x0b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad5:             [  0x9A  ,  0x0c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad6:             [  0x9A  ,  0x0d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad7:             [  0x9A  ,  0x0e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_pad8:             [  0x9A  ,  0x0f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_paramLeft:        [  0x93  ,  0x01  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotcue_shifton_paramRight:       [  0x93  ,  0x09  ,  {  led:  false,  type:  "button"  }  ],
+deck4_hotloop:                         [  0x93  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad1:           [  0x9A  ,  0x40  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad2:           [  0x9A  ,  0x41  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad3:           [  0x9A  ,  0x42  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad4:           [  0x9A  ,  0x43  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad5:           [  0x9A  ,  0x44  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad6:           [  0x9A  ,  0x45  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad7:           [  0x9A  ,  0x46  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_pad8:           [  0x9A  ,  0x47  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_paramLeft:      [  0x93  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shiftoff_paramRight:     [  0x93  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad1:            [  0x9A  ,  0x48  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad2:            [  0x9A  ,  0x49  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad3:            [  0x9A  ,  0x4a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad4:            [  0x9A  ,  0x4b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad5:            [  0x9A  ,  0x4c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad6:            [  0x9A  ,  0x4d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad7:            [  0x9A  ,  0x4e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_pad8:            [  0x9A  ,  0x4f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_paramLeft:       [  0x93  ,  0x05  ,  {  led:  true,  type:  "button"  }  ],
+deck4_hotloop_shifton_paramRight:      [  0x93  ,  0x7D  ,  {  led:  false,  type:  "button"  }  ],
+deck4_manualloop:                      [  0x93  ,  0x6D  ,  {  led:  false,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad1:        [  0x9A  ,  0x60  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad2:        [  0x9A  ,  0x61  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad3:        [  0x9A  ,  0x62  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad4:        [  0x9A  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad5:        [  0x9A  ,  0x64  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad6:        [  0x9A  ,  0x65  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad7:        [  0x9A  ,  0x66  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_pad8:        [  0x9A  ,  0x67  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_paramLeft:   [  0x93  ,  0x2A  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shiftoff_paramRight:  [  0x93  ,  0x32  ,  {  led:  false,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad1:         [  0x9A  ,  0x68  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad2:         [  0x9A  ,  0x69  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad3:         [  0x9A  ,  0x6a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad4:         [  0x9A  ,  0x6b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad5:         [  0x9A  ,  0x6c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad6:         [  0x9A  ,  0x6d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad7:         [  0x9A  ,  0x6e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_pad8:         [  0x9A  ,  0x6f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_paramLeft:    [  0x93  ,  0x07  ,  {  led:  true,  type:  "button"  }  ],
+deck4_manualloop_shifton_paramRight:   [  0x93  ,  0x7F  ,  {  led:  false,  type:  "button"  }  ],
+deck4_roll:                            [  0x93  ,  0x1E  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad1:              [  0x9A  ,  0x10  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad2:              [  0x9A  ,  0x11  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad3:              [  0x9A  ,  0x12  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad4:              [  0x9A  ,  0x13  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad5:              [  0x9A  ,  0x14  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad6:              [  0x9A  ,  0x15  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad7:              [  0x9A  ,  0x16  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_pad8:              [  0x9A  ,  0x17  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_paramLeft:         [  0x93  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shiftoff_paramRight:        [  0x93  ,  0x2D  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad1:               [  0x9A  ,  0x18  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad2:               [  0x9A  ,  0x19  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad3:               [  0x9A  ,  0x1a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad4:               [  0x9A  ,  0x1b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad5:               [  0x9A  ,  0x1c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad6:               [  0x9A  ,  0x1d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad7:               [  0x9A  ,  0x1e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_pad8:               [  0x9A  ,  0x1f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_paramLeft:          [  0x93  ,  0x02  ,  {  led:  true,  type:  "button"  }  ],
+deck4_roll_shifton_paramRight:         [  0x93  ,  0x7A  ,  {  led:  false,  type:  "button"  }  ],
+deck4_sampler:                         [  0x93  ,  0x22  ,  {  led:  false,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad1:           [  0x9A  ,  0x30  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad2:           [  0x9A  ,  0x31  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad3:           [  0x9A  ,  0x32  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad4:           [  0x9A  ,  0x33  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad5:           [  0x9A  ,  0x34  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad6:           [  0x9A  ,  0x35  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad7:           [  0x9A  ,  0x36  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_pad8:           [  0x9A  ,  0x37  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_paramLeft:      [  0x93  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shiftoff_paramRight:     [  0x93  ,  0x2F  ,  {  led:  false,  type:  "button"  }  ],
+deck4_sampler_shifton_pad1:            [  0x9A  ,  0x38  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad2:            [  0x9A  ,  0x39  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad3:            [  0x9A  ,  0x3a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad4:            [  0x9A  ,  0x3b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad5:            [  0x9A  ,  0x3c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad6:            [  0x9A  ,  0x3d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad7:            [  0x9A  ,  0x3e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_pad8:            [  0x9A  ,  0x3f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_paramLeft:       [  0x93  ,  0x04  ,  {  led:  true,  type:  "button"  }  ],
+deck4_sampler_shifton_paramRight:      [  0x93  ,  0x7C  ,  {  led:  false,  type:  "button"  }  ],
+deck4_slicer:                          [  0x93  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad1:            [  0x9A  ,  0x20  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad2:            [  0x9A  ,  0x21  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad3:            [  0x9A  ,  0x22  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad4:            [  0x9A  ,  0x23  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad5:            [  0x9A  ,  0x24  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad6:            [  0x9A  ,  0x25  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad7:            [  0x9A  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_pad8:            [  0x9A  ,  0x27  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_paramLeft:       [  0x93  ,  0x26  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shiftoff_paramRight:      [  0x93  ,  0x2E  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad1:             [  0x9A  ,  0x28  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad2:             [  0x9A  ,  0x29  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad3:             [  0x9A  ,  0x2a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad4:             [  0x9A  ,  0x2b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad5:             [  0x9A  ,  0x2c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad6:             [  0x9A  ,  0x2d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad7:             [  0x9A  ,  0x2e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_pad8:             [  0x9A  ,  0x2f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_paramLeft:        [  0x93  ,  0x03  ,  {  led:  true,  type:  "button"  }  ],
+deck4_slicer_shifton_paramRight:       [  0x93  ,  0x7B  ,  {  led:  false,  type:  "button"  }  ],
+deck4_velocity:                        [  0x93  ,  0x6F  ,  {  led:  false,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad1:          [  0x9A  ,  0x70  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad2:          [  0x9A  ,  0x71  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad3:          [  0x9A  ,  0x72  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad4:          [  0x9A  ,  0x73  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad5:          [  0x9A  ,  0x74  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad6:          [  0x9A  ,  0x75  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad7:          [  0x9A  ,  0x76  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_pad8:          [  0x9A  ,  0x77  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_paramLeft:     [  0x93  ,  0x2B  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shiftoff_paramRight:    [  0x93  ,  0x33  ,  {  led:  false,  type:  "button"  }  ],
+deck4_velocity_shifton_pad1:           [  0x9A  ,  0x78  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad2:           [  0x9A  ,  0x79  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad3:           [  0x9A  ,  0x7a  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad4:           [  0x9A  ,  0x7b  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad5:           [  0x9A  ,  0x7c  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad6:           [  0x9A  ,  0x7d  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad7:           [  0x9A  ,  0x7e  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_pad8:           [  0x9A  ,  0x7f  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_paramLeft:      [  0x93  ,  0x08  ,  {  led:  true,  type:  "button"  }  ],
+deck4_velocity_shifton_paramRight:     [  0x93  ,  0x00  ,  {  led:  false,  type:  "button"  }  ],
+fx_shiftoff_fx1knob1:                  [  0xB4  ,  0x02  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shiftoff_fx1knob1_detail:           [  0xB4  ,  0x22  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shiftoff_fx1knob2:                  [  0xB4  ,  0x04  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shiftoff_fx1knob2_detail:           [  0xB4  ,  0x24  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shiftoff_fx1knob3:                  [  0xB4  ,  0x06  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shiftoff_fx1knob3_detail:           [  0xB4  ,  0x26  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shiftoff_fx1latch1:                 [  0x94  ,  0x47  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx1latch2:                 [  0x94  ,  0x48  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx1latch3:                 [  0x94  ,  0x49  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx1rotary:                 [  0xB4  ,  0x00  ,  {  led:  false,  type:  "button"  }  ],
+fx_shiftoff_fx1rotaryBtn:              [  0x94  ,  0x43  ,  {  led:  false,  type:  "button"  }  ],
+fx_shiftoff_fx1rotaryLatch:            [  0x94  ,  0x4A  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx2knob1:                  [  0xB5  ,  0x02  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shiftoff_fx2knob1_detail:           [  0xB5  ,  0x22  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shiftoff_fx2knob2:                  [  0xB5  ,  0x04  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shiftoff_fx2knob2_detail:           [  0xB5  ,  0x24  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shiftoff_fx2knob3:                  [  0xB5  ,  0x06  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shiftoff_fx2knob3_detail:           [  0xB5  ,  0x26  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shiftoff_fx2latch1:                 [  0x95  ,  0x47  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx2latch2:                 [  0x95  ,  0x48  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx2latch3:                 [  0x95  ,  0x49  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx2rotary:                 [  0xB5  ,  0x00  ,  {  led:  true,  type:  "button"  }  ],
+fx_shiftoff_fx2rotaryBtn:              [  0x95  ,  0x43  ,  {  led:  false,  type:  "button"  }  ],
+fx_shiftoff_fx2rotaryLatch:            [  0x95  ,  0x4A  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx1knob1:                   [  0xB4  ,  0x12  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shifton_fx1knob1_detail:            [  0xB4  ,  0x32  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shifton_fx1knob2:                   [  0xB4  ,  0x14  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shifton_fx1knob2_detail:            [  0xB4  ,  0x34  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shifton_fx1knob3:                   [  0xB4  ,  0x16  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shifton_fx1knob3_detail:            [  0xB4  ,  0x36  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shifton_fx1latch1:                  [  0x94  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx1latch2:                  [  0x94  ,  0x64  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx1latch3:                  [  0x94  ,  0x65  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx1rotary:                  [  0xB4  ,  0x10  ,  {  led:  false,  type:  "button"  }  ],
+fx_shifton_fx1rotaryBtn:               [  0x94  ,  0x40  ,  {  led:  false,  type:  "button"  }  ],
+fx_shifton_fx1rotaryLatch:             [  0x94  ,  0x66  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx2knob1:                   [  0xB5  ,  0x12  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shifton_fx2knob1_detail:            [  0xB5  ,  0x32  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shifton_fx2knob2:                   [  0xB5  ,  0x14  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shifton_fx2knob2_detail:            [  0xB5  ,  0x34  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shifton_fx2knob3:                   [  0xB5  ,  0x16  ,  {  led:  false,  type:  "knob"    }  ],
+fx_shifton_fx2knob3_detail:            [  0xB5  ,  0x36  ,  {  led:  false,  type:  "detail"  }  ],
+fx_shifton_fx2latch1:                  [  0x95  ,  0x63  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx2latch2:                  [  0x95  ,  0x64  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx2latch3:                  [  0x95  ,  0x65  ,  {  led:  true,  type:  "button"  }  ],
+fx_shifton_fx2rotary:                  [  0xB5  ,  0x10  ,  {  led:  false,  type:  "button"  }  ],
+fx_shifton_fx2rotaryBtn:               [  0x95  ,  0x40  ,  {  led:  false,  type:  "button"  }  ],
+fx_shifton_fx2rotaryLatch:             [  0x95  ,  0x66  ,  {  led:  true,  type:  "button"  }  ],
+middle_shift:                          [  0x96  ,  0x40  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_back:                  [  0x96  ,  0x65  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_forward:               [  0x96  ,  0x67  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_fxAssignL1:            [  0x96  ,  0x4C  ,  {  led:  true,  type:  "button"  }  ],
+middle_shiftoff_fxAssignL2:            [  0x96  ,  0x4D  ,  {  led:  true,  type:  "button"  }  ],
+middle_shiftoff_fxAssignR1:            [  0x96  ,  0x50  ,  {  led:  true,  type:  "button"  }  ],
+middle_shiftoff_fxAssignR2:            [  0x96  ,  0x51  ,  {  led:  true,  type:  "button"  }  ],
+middle_fx1Assign3LED:                  [  0x96  ,  0x5A  ,  {  led:  true,  type:  "led"  }  ],
+middle_fx1Assign4LED:                  [  0x96  ,  0x5B  ,  {  led:  true,  type:  "led"  }  ],
+middle_fx2Assign3LED:                  [  0x96  ,  0x5C  ,  {  led:  true,  type:  "led"  }  ],
+middle_fx2Assign4LED:                  [  0x96  ,  0x5D  ,  {  led:  true,  type:  "led"  }  ],
+middle_shiftoff_load1:                 [  0x96  ,  0x46  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_load2:                 [  0x96  ,  0x47  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_load3:                 [  0x96  ,  0x48  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_load4:                 [  0x96  ,  0x49  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_rotary:                [  0xB6  ,  0x40  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_rotaryBtn:             [  0x96  ,  0x41  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_selectDeck3:           [  0x92  ,  0x72  ,  {  led:  true,  type:  "button"  }  ],
+middle_shiftoff_selectDeck4:           [  0x93  ,  0x72  ,  {  led:  true,  type:  "button"  }  ],
+middle_shiftoff_volume:                [  0xB6  ,  0x03  ,  {  led:  false,  type:  "button"  }  ],
+middle_shiftoff_volume_detail:         [  0xB6  ,  0x23  ,  {  led:  false,  type:  "detail"  }  ],
+middle_shifton_back:                   [  0x96  ,  0x66  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_forward:                [  0x96  ,  0x68  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_fxAssignL1:             [  0x96  ,  0x4E  ,  {  led:  true,  type:  "button"  }  ],
+middle_shifton_fxAssignL2:             [  0x96  ,  0x4F  ,  {  led:  true,  type:  "button"  }  ],
+middle_shifton_fxAssignR1:             [  0x96  ,  0x52  ,  {  led:  true,  type:  "button"  }  ],
+middle_shifton_fxAssignR2:             [  0x96  ,  0x53  ,  {  led:  true,  type:  "button"  }  ],
+middle_shifton_load1:                  [  0x96  ,  0x58  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_load2:                  [  0x96  ,  0x59  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_load3:                  [  0x96  ,  0x60  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_load4:                  [  0x96  ,  0x61  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_rotary:                 [  0xB6  ,  0x64  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_rotaryBtn:              [  0x96  ,  0x42  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_selectDeck3:            [  0x92  ,  0x73  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_selectDeck4:            [  0x93  ,  0x73  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_volume:                 [  0xB6  ,  0x69  ,  {  led:  false,  type:  "button"  }  ],
+middle_shifton_volume_detail:          [  0xB6  ,  0x69  ,  {  led:  false,  type:  "detail"  }  ],
+    last: true
 };
 // End of sp1-midiMap.js
 //// include sp1-lib.js
@@ -328,130 +934,140 @@ var ControllerStatusSysex = [0xF0, 0x00, 0x20, 0x7F, 0x03, 0x01, 0xF7];
 
 var makeDeck = function(deckNum) {
     var ret = {};
-    if (deckNum == 1 || deckNum == 3) {
-        ret.physicalPrefix = 'L_';
-    } else {
-        ret.physicalPrefix = 'R_';
-    }
+    ret.physicalPrefix='deck' + deckNum + '_';
     ret.deck = deckNum;
 
     // this will map a physical midi key to a function that accepts channel,
     // status, etc.
-    var midi = {};
+    var midi = sp1.midi;
 
-    ret._physGet = function(logicalKey) {
-        return ret.physicalPrefix + logicalKey;
+    ret._physGet = function (opts) {
+        return ret.physicalPrefix + opts.mode + '_' + opts.shift + '_' + opts.key;
     };
-    ret._midiGet = function(logicalKey) {
-        return sp1.midiMap[ret._physGet(logicalKey)];
+    ret._mode = function(mode) {
+        return ret.physicalPrefix + mode;
+    };
+    // shorthand for 'mode, shift, key' tuple
+    ret._msk = function(m, s, k) {
+        if (m === false || m === 0) {
+            m = "anymode";
+        }
+        if (s === true) {
+            s = 'shifton';
+        } else {
+            s = 'shiftoff';
+        }
+        return ret._physGet({ mode: m, shift: s, key: k });
     };
 
-
-    var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-    midi[ret._physGet('knob3')] = function(channel, control, value, status, group) {
+    // called by fx
+    ret.deckFilterKnob = function(value) {
+        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
         mixxxSet(deckFilter, 'super1', valueFromMidi(value));
     };
-
-    midi[ret._physGet('fxBtn3')] = function(channel, control, value, status, group) {
-        if (mixxxLatch(value, deckFilter, 'enabled')) {
-            sp1.ledSet(ret._physGet('fxBtn3'), mixxxGet(deckFilter, 'enabled'));
-        }
+    ret.deckFilterLatch = function(value) {
+        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
+        mixxxLatch(value, deckFilter, 'enabled');
     };
-    sp1.ledSet(ret._physGet('fxBtn3'), mixxxGet(deckFilter, 'enabled'));
+    ret.deckFilterLatchGet = function() {
+        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
+        return mixxxGet(deckFilter, 'enabled');
+    };
 
     ret.channel = '[Channel' + ret.deck + ']';
 
     // NOTE: If you're looking for the autoloop or param midi configurations, it is below the 'roll'
     // pad mode stuff (because it needs to be aware of the 'roll' mode)
 
-    var tempoAdjust = midiValueHandler(function(value) {
+    ret.tempoAdjust = function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up'); });
-    });
+    };
 
     // independent of tempo
-    var pitchAdjust = midiValueHandler(function(value) {
+    ret.pitchAdjust = function(value) {
         var ticks = ticksFromRotary(value);
         var pitch = mixxxVGet(ret.channel, 'pitch');
-        dbglog("pitch is: " + pitch);
         perRightTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') + 1); });
         perLeftTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') - 1); });
-    });
-    var pitchReset = midiValueHandler(function(value) {
+    };
+    ret.pitchReset = function(value) {
         mixxxVSet(ret.channel, 'pitch', 0);
-    });
+    };
 
     // adjusts tempo+pitch
-    var tempoAdjustSmall = midiValueHandler(function(value) {
+    ret.tempoAdjustSmall = function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down_small'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up_small'); });
-    });
-
-    var tempoReset = midiValueHandler(function(value) {
-        if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
-    });
-
-    midi[ret._physGet('beatRotary')] = tempoAdjust;
-    midi[ret._physGet('beatRotary_shift')] = pitchAdjust;
-    midi[ret._physGet('beatRotaryBtn')] = tempoReset;
-    midi[ret._physGet('beatRotaryBtn_shift')] = pitchReset;
-
-    midi[ret._physGet('sync')] = function(channel, control, value, status, group) {
-        mixxxButton(value, ret.channel, 'beatsync_tempo');
     };
 
-    midi[ret._physGet('slipBtn')] = function(channel, control, value, status, group) {
+    ret.tempoReset = function(value) {
+        if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
+    };
+
+    var sync = midiValueHandler(function(value) {
+        mixxxButton(value, ret.channel, 'beatsync_tempo');
+    });
+
+    var slip = midiValueHandler(function(value) {
         mixxxLatch(value, ret.channel, 'slip_enabled');
         if (value == 0x7F) {
-            sp1.ledSet(ret._physGet('slipBtn'), mixxxGet(ret.channel, 'slip_enabled'));
+            sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
         }
-    };
-    sp1.ledSet(ret._physGet('slipBtn'), mixxxGet(ret.channel, 'slip_enabled'));
+    });
+
+
+    midi[ret._msk(false, false, 'sync')] = sync;
+    midi[ret._msk(false, false, 'slip')] = slip;
+    sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
 
     ret.currentPadMode = 'hotcues';
     ret.padMode = {}; // maps a pad mode name to a pad mode object
     ret.refreshPadLeds = function() {
-        for (var i = 1; i <= 32; ++i) {
-            sp1.ledOff(ret._physGet('pad' + i));
+        for (var i = 1; i <= 8; ++i) {
+            sp1.ledOff(ret._msk(ret.currentPadMode, false, 'pad' + i));
+            sp1.ledOff(ret._msk(ret.currentPadMode, true, 'pad' + i));
         }
-        sp1.ledOff(ret._physGet('hotCue'));
-        sp1.ledOff(ret._physGet('roll'));
-        sp1.ledOff(ret._physGet('slicer'));
-        sp1.ledOff(ret._physGet('sampler'));
+        sp1.ledOff(ret._mode('hotcue'));
+        sp1.ledOff(ret._mode('roll'));
+        sp1.ledOff(ret._mode('slicer'));
+        sp1.ledOff(ret._mode('sampler'));
         ret.padMode[ret.currentPadMode].setLeds();
     };
     ret.setPadMode = function(newmode) {
-        //dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
+        dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
         ret.currentPadMode = newmode;
         ret.refreshPadLeds();
     }
 
     var hotcues = {}; // pad mode object
     hotcues.setLeds = function() {
+        // NOTE: not doing anything with the shift-pads
         for (var i = 1; i <= 8; ++i) {
-            sp1.ledSet(ret._physGet('pad' + i), mixxxGet(ret.channel, 'hotcue_' + i + '_enabled'));
+            var ledon = mixxxGet(ret.channel, 'hotcue_' + i + '_enabled');
+            sp1.ledSet(ret._msk('hotcue', false, 'pad' + i), ledon);
         }
-        sp1.ledOn(ret._physGet('hotCue'));
+        sp1.ledOn(ret._mode('hotcue'));
     };
 
     // pressing hotCue button sets the current pad mode to 'hotcues'
-    midi[ret._physGet('hotCue')] = function (channel, control, value, status, group) {
+    midi[ret._mode('hotcue')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
             ret.setPadMode('hotcues');
         }
-    };
+    });
 
     var makePad = function(hactivate, physKey) {
-        hotcues[physKey] = function (channel, control, value, status, group) {
+        midi[physKey] = midiValueHandler(function(value) {
             mixxxButton(value, ret.channel, hactivate);
-        };
+        });
     };
 
     for (var i = 1; i <= 8; ++i) {
         // NOTE: gotoandplay is used to avoid accidentally setting cue points.
-        makePad('hotcue_' + i + '_gotoandplay', ret._physGet('pad' + i));
+        makePad('hotcue_' + i + '_gotoandplay', ret._msk('hotcue', false, 'pad' + i));
     }
 
     ret.padMode['hotcues'] = hotcues;
@@ -470,7 +1086,8 @@ var makeDeck = function(deckNum) {
     };
     // OK to pass nothing for 'eighths'; setLeds() will get it itself if needed.
     roll.setLeds = function(eighths) {
-        sp1.ledOn(ret._physGet('roll'));
+        dbglog('setting roll LED on');
+        sp1.ledOn(ret._mode('roll'));
         // turn on the LED corresponding to the beat loop size we are at
         if (typeof eighths === 'undefined') {
             eighths = Math.round(roll.getLoopEighths());
@@ -478,14 +1095,14 @@ var makeDeck = function(deckNum) {
         if (eighths > 0) {
             if (eighths >= 1 && eighths <= (16 * 8)) {
                 switch (eighths) {
-                    case 1: sp1.ledOn(ret._physGet('pad9')); break;
-                    case 2: sp1.ledOn(ret._physGet('pad10')); break;
-                    case 4: sp1.ledOn(ret._physGet('pad11')); break;
-                    case 8: sp1.ledOn(ret._physGet('pad12')); break;
-                    case 16: sp1.ledOn(ret._physGet('pad13')); break;
-                    case 32: sp1.ledOn(ret._physGet('pad14')); break;
-                    case 64: sp1.ledOn(ret._physGet('pad15')); break;
-                    case 128: sp1.ledOn(ret._physGet('pad16')); break;
+                    case 1: sp1.ledOn(ret._msk('roll', false, 'pad1')); break;
+                    case 2: sp1.ledOn(ret._msk('roll', false, 'pad2')); break;
+                    case 4: sp1.ledOn(ret._msk('roll', false, 'pad3')); break;
+                    case 8: sp1.ledOn(ret._msk('roll', false, 'pad4')); break;
+                    case 16: sp1.ledOn(ret._msk('roll', false, 'pad5')); break;
+                    case 32: sp1.ledOn(ret._msk('roll', false, 'pad6')); break;
+                    case 64: sp1.ledOn(ret._msk('roll', false, 'pad7')); break;
+                    case 128: sp1.ledOn(ret._msk('roll', false, 'pad8')); break;
                     default:
                         dbglog(eighths + ' didnt match anything!');
                 }
@@ -496,19 +1113,19 @@ var makeDeck = function(deckNum) {
         }
     };
     roll.clearLeds = function() {
-        for (var i = 9; i <= 16; ++i) {
-            sp1.ledOff(ret._physGet('pad' + i));
+        for (var i = 1; i <= 8; ++i) {
+            sp1.ledOff(ret._msk('roll', false, 'pad' + i));
         }
     };
 
-    midi[ret._physGet('roll')] = function(channel, control, value, status, group) {
+    midi[ret._mode('roll')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
             ret.setPadMode('roll');
         }
-    };
+    });
 
     makePad = function(lengthInBeats, setloop, physKey) {
-        roll[physKey] = function (channel, control, value, status, group) {
+        midi[physKey] = midiValueHandler(function(value) {
             if (value != 0x7F) return;
             if (Math.round(roll.getLoopEighths()) == Math.round(lengthInBeats*8) && mixxxGet(ret.channel, 'loop_enabled')) {
                 // loop is already set to this value and enabled. Disable the loop.
@@ -521,16 +1138,16 @@ var makeDeck = function(deckNum) {
                 roll.clearLeds();
                 sp1.ledOn(physKey);
             }
-        };
+        });
     };
 
     var beatlength = (1/8);
-    for (var i = 9; i <= 16; ++i) {
-        makePad(beatlength, 'beatloop_' + beatlength + '_toggle', ret._physGet('pad' + i));
+    for (var i = 1; i <= 8; ++i) {
+        makePad(beatlength, 'beatloop_' + beatlength + '_toggle', ret._msk('roll', false, 'pad' + i));
         beatlength *= 2;
     }
 
-    midi[ret._physGet('loopRotary')] = function(channel, control, value, status, group) {
+    midi[ret._msk(false, false, 'autoloop')] = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         var loopLength = roll.getLoopEighths();
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'loop_double'); loopLength *= 2; });
@@ -544,62 +1161,42 @@ var makeDeck = function(deckNum) {
             // handler.
             rollmode.setLeds(Math.round(loopLength));
         }
-    };
+    });
 
     // This doesn't seem to work with the beat loop controls? weird.
-    midi[ret._physGet('loopRotaryBtn')] = function(channel, control, value, status, group) {
+    midi[ret._msk(false, false, 'autoloopBtn')] = midiValueHandler(function(value) {
         mixxxButtonPress(ret.channel, 'reloop_exit');
-    };
+    });
 
-    midi[ret._physGet('paramBackRoll')] = function(channel, control, value, status, group) {
+    // paramleft
+    midi[ret._msk('roll', false, 'paramLeft')] = midiValueHandler(function(value) {
         // For 2.1+:
         //mixxxButton(value, ret.channel, 'loop_move_backward_beatloop_size');
         var key = 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_backward';
         mixxxButton(value, ret.channel, key);
-    };
-    midi[ret._physGet('paramBackHotcue')] = midi[ret._physGet('paramBackRoll')];
-    midi[ret._physGet('paramForwardRoll')] = function(channel, control, value, status, group) {
-        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
-    };
-    midi[ret._physGet('paramForwardHotcue')] = midi[ret._physGet('paramForwardRoll')];
+    });
+    midi[ret._msk('hotcue', false, 'paramLeft')] = midi[ret._msk('roll', false, 'paramLeft')];
 
-    // holding shift jumps you 8x further
-    midi[ret._physGet('paramBackRoll_shift')] = function(channel, control, value, status, group) {
+    // paramright
+    midi[ret._msk('roll', false, 'paramRight')] = midiValueHandler(function(value) {
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
+    });
+    midi[ret._msk('hotcue', false, 'paramRight')] = midi[ret._msk('roll', false, 'paramRight')];
+
+    // shift+paramleft/right jumps you 8x further
+    midi[ret._msk('roll', true, 'paramLeft')] = midiValueHandler(function(value) {
         var key = 'loop_move_' + Math.round(roll.getLoopEighths()) + '_backward';
         mixxxButton(value, ret.channel, key);
-    };
-    midi[ret._physGet('paramBackHotcue_shift')] = midi[ret._physGet('paramBackRoll_shift')];
-    midi[ret._physGet('paramForwardRoll_shift')] = function(channel, control, value, status, group) {
+    });
+    midi[ret._msk('hotcue', true, 'paramLeft')] = midi[ret._msk('roll', true, 'paramLeft')];
+
+    // shift+paramright
+    midi[ret._msk('roll', true, 'paramRight')] = midiValueHandler(function(value) {
         mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) + '_forward');
-    };
-    midi[ret._physGet('paramForwardHotcue_shift')] = midi[ret._physGet('paramForwardRoll_shift')];
+    });
+    midi[ret._msk('hotcue', true, 'paramRight')] = midi[ret._msk('roll', true, 'paramRight')];
 
     ret.padMode['roll'] = roll;
-
-    // forward pad presses to our current pad mode
-    var dispatchPad = function(pad, args) {
-        var pads = ret.padMode[ret.currentPadMode];
-        if (typeof pads === 'undefined') {
-            dbglog('No pad mode matching ' + ret.currentPadMode);
-            return;
-        }
-        var handler = pads[ret._physGet(pad)];
-        if (handler) {
-            handler.apply(pads, args);
-        }
-    };
-    for (var i = 1; i <= 32; ++i) {
-        midi[ret._physGet('pad' + i)] = function(i) { return function(args) {
-            dispatchPad('pad' + i, arguments);
-        }
-        }(i);
-    };
-
-    midi[ret._physGet('loopRotaryBtn')] = function(channel, control, value, status, group) {
-        mixxxButtonPress(ret.channel, 'beatsync_tempo');
-    };
-
-    ret.midi = midi;
 
     return ret;
 };
@@ -610,54 +1207,87 @@ var makeDeck = function(deckNum) {
 
 var makeMiddle = function() {
     var ret = {};
-    ret.physicalPrefix = 'M_';
-    ret._physGet = function(logicalKey) {
-        return ret.physicalPrefix + logicalKey;
-    };
-    ret._midiGet = function(logicalKey) {
-        return sp1.midiMap[ret._physGet(logicalKey)];
+    ret.physicalPrefix = 'middle_';
+    // NOTE: _physGet cannot get the shift key itself (though no need for that yet)
+    ret._physGet = function(shift, logicalKey) {
+        return ret.physicalPrefix + (shift? 'shifton_' : 'shiftoff_') + logicalKey;
     };
 
-    var midi = {};
+    var midi = sp1.midi;
 
     var unit = function(n) { return  '[EffectRack1_EffectUnit' + n + ']'};
     var chan = function(n) { return 'group_[Channel' + n + ']_enable'; };
-    var fxenable = function(u, c, btn) {
-        sp1.ledSet(ret._physGet(btn), mixxxGet(unit(u), chan(c)));
-        return function(channel, control, value, status, group) {
+    var fxenable = function(u, c, led) {
+        sp1.ledSet(led, mixxxGet(unit(u), chan(c)));
+        return midiValueHandler(function(value) {
             if (value == 0x7F) {
                 mixxxToggle(unit(u), chan(c));
                 mixxxSet(unit(u+1), chan(c), mixxxGet(unit(u), chan(c)));
-                sp1.ledSet(ret._physGet(btn), mixxxGet(unit(u), chan(c)));
+                var enabled = mixxxGet(unit(u), chan(c));
+                sp1.ledSet(led, enabled);
             }
-        }
+        });
     };
-    midi[ret._physGet('fxLdeck1')] = fxenable(1, 1, 'fxLdeck1');
-    midi[ret._physGet('fxLdeck2')] = fxenable(1, 2, 'fxLdeck2');
-    midi[ret._physGet('fxRdeck1')] = fxenable(3, 1, 'fxRdeck1');
-    midi[ret._physGet('fxRdeck2')] = fxenable(3, 2, 'fxRdeck2');
+    midi[ret._physGet(false, 'fxAssignL1')] = fxenable(1, 1, ret._physGet(false, 'fxAssignL1'));
+    midi[ret._physGet(false, 'fxAssignL2')] = fxenable(1, 2, ret._physGet(false, 'fxAssignL2'));
+    midi[ret._physGet(false, 'fxAssignR1')] = fxenable(3, 1, ret._physGet(false, 'fxAssignR1'));
+    midi[ret._physGet(false, 'fxAssignR2')] = fxenable(3, 2, ret._physGet(false, 'fxAssignR2'));
 
-    midi[ret._physGet('loadL')] = function(channel, control, value, status, group) {
-        mixxxButtonPress('[Channel' + sp1.currentLeftDeck.deck + ']', 'LoadSelectedTrack');
+    midi[ret._physGet(true, 'fxAssignL1')] = fxenable(1, 3, ret.physicalPrefix + 'fx1Assign3LED');
+    midi[ret._physGet(true, 'fxAssignL2')] = fxenable(1, 4, ret.physicalPrefix + 'fx1Assign4LED');
+    midi[ret._physGet(true, 'fxAssignR1')] = fxenable(3, 3, ret.physicalPrefix + 'fx2Assign3LED');
+    midi[ret._physGet(true, 'fxAssignR2')] = fxenable(3, 4, ret.physicalPrefix + 'fx2Assign4LED');
+
+    var switchToDeckN = function(member, deck, ledbtn, ledstate) {
+        return midiValueHandler(function(value) {
+            if (value == 0x7F) {
+                dbglog("Switching to deck " + deck);
+                sp1[member] = sp1['deck' + deck];
+                sp1.ledSet(ret._physGet(false, ledbtn), ledstate);
+            }
+        });
     };
-    midi[ret._physGet('loadL_shift')] = function(channel, control, value, status, group) {
-        mixxxButtonPress('[Channel' + sp1.currentLeftDeck.deck + ']', 'stop');
-    };
-    midi[ret._physGet('loadR')] = function(channel, control, value, status, group) {
-        mixxxButtonPress('[Channel' + sp1.currentRightDeck.deck + ']', 'LoadSelectedTrack');
-    };
-    midi[ret._physGet('loadR_shift')] = function(channel, control, value, status, group) {
-        mixxxButtonPress('[Channel' + sp1.currentRightDeck.deck + ']', 'stop');
+    var switchToDeck1 = switchToDeckN('currentLeftDeck', 1, 'selectDeck3', false);
+    var switchToDeck3 = switchToDeckN('currentLeftDeck', 3, 'selectDeck3', true);
+    var switchToDeck2 = switchToDeckN('currentRightDeck', 2, 'selectDeck4', false);
+    var switchToDeck4 = switchToDeckN('currentRightDeck', 4, 'selectDeck4', true);
+
+    midi[ret._physGet(false, 'selectDeck3')] = switchToDeck3;
+    // shift+deck3 goes back to deck1
+    midi[ret._physGet(true, 'selectDeck3')] = switchToDeck1;
+    midi[ret._physGet(false, 'selectDeck4')] = switchToDeck4;
+    midi[ret._physGet(true, 'selectDeck4')] = switchToDeck2;
+
+    var loadDeckN = function(deck) {
+
+        midi[ret._physGet(false, 'load' + deck)] = midiValueHandler(function(value) {
+            mixxxButtonPress('[Channel' + deck + ']', 'LoadSelectedTrack');
+        });
+        // shift+load stops the deck
+        midi[ret._physGet(true, 'load' + deck)] = midiValueHandler(function(value) {
+            mixxxButtonPress('[Channel' + deck + ']', 'stop');
+        });
+
     };
 
-    midi[ret._physGet('rotary')] = function(channel, control, value, status, group) {
+    loadDeckN(1);
+    loadDeckN(2);
+    loadDeckN(3);
+    loadDeckN(4);
+
+    midi[ret._physGet(false, 'rotary')] = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         // These will be preferred for 2.1+
         //perLeftTick(ticks, function() { mixxxButtonPress('[Library]', 'MoveUp'); });
         //perRightTick(ticks, function() { mixxxButtonPress('[Library]', 'MoveDown'); });
         perLeftTick(ticks, function() { mixxxButtonPress('[Playlist]', 'SelectPrevTrack'); });
         perRightTick(ticks, function() { mixxxButtonPress('[Playlist]', 'SelectNextTrack'); });
-    };
+    });
+
+    sp1.ledSet(ret._physGet(false, 'selectDeck3'), false);
+    sp1.ledSet(ret._physGet(false, 'selectDeck4'), false);
+    sp1.currentLeftDeck  = sp1.deck1;
+    sp1.currentRightDeck = sp1.deck2;
 
     ret.midi = midi;
 
@@ -684,13 +1314,10 @@ sp1._fx = [
 var makeFx = function() {
 
     var ret = {};
-    var midi = {};
-    ret.physicalPrefix = 'F_';
-    ret._physGet = function(logicalKey) {
-        return ret.physicalPrefix + logicalKey;
-    };
-    ret._midiGet = function(logicalKey) {
-        return sp1.midiMap[ret._physGet(logicalKey)];
+    var midi = sp1.midi;
+    ret.physicalPrefix = 'fx_';
+    ret._physGet = function(shift, logicalKey) {
+        return ret.physicalPrefix + (shift? 'shifton_' : 'shiftoff_') + logicalKey;
     };
 
     var fxgroup = function(num) {
@@ -707,43 +1334,89 @@ var makeFx = function() {
     //mixxxSet('[EffectRack1_EffectUnit3_Effect1]', 'parameter2_link_inverse', true);
     cycleFx(fxgroup(4), 1+sp1._fx.indexOf('echo'));
 
+    // no shift support here yet
     var makeFxControl = function(knob, latch, groupNum) {
-        midi[ret._physGet(knob)] = function(channel, control, value, status, group) {
+        midi[ret._physGet(false, knob)] = midiValueHandler(function(value) {
             mixxxSet(fxgroup(groupNum), 'super1', valueFromMidi(value));
             // mix should very quickly hit max (note that we rely on mixxx to 'clip' the value
             // once we hit 0x7F
             mixxxSet(fxgroup(groupNum), 'mix', valueFromMidi(value*value / 4));
-        };
-        midi[ret._physGet(latch)] = function(channel, control, value, status, group) {
+        });
+        midi[ret._physGet(false, latch)] = midiValueHandler(function(value) {
             if (value == 0x7F) {
                 mixxxToggle(fxgroup(groupNum), 'enabled');
-                sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+                sp1.ledSet(ret._physGet(false, latch), mixxxGet(fxgroup(groupNum), 'enabled'));
             }
-        };
-        sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+        });
+        sp1.ledSet(ret._physGet(false, latch), mixxxGet(fxgroup(groupNum), 'enabled'));
     };
 
-    makeFxControl('knob1', 'fxBtn1', 1);
-    makeFxControl('knob2', 'fxBtn2', 2);
-    //makeFxControl('knob3', 'fxBtn3', 3);
+    makeFxControl('fx1knob1', 'fx1latch1', 1);
+    makeFxControl('fx1knob2', 'fx1latch2', 2);
     // reverb needs special handling: 1) damping inversed 2) set parameter2 instead of super1
     (function(knob, latch, groupNum) {
-        midi[ret._physGet(knob)] = function(channel, control, value, status, group) {
+        midi[ret._physGet(false, knob)] = function(channel, control, value, status, group) {
             mixxxSet('[EffectRack1_EffectUnit3_Effect1]', 'parameter2', valueFromMidi(0x7F - value));
             mixxxSet(fxgroup(groupNum), 'mix', valueFromMidi(value*value / 4));
         };
-        midi[ret._physGet(latch)] = function(channel, control, value, status, group) {
+        midi[ret._physGet(false, latch)] = function(channel, control, value, status, group) {
             if (value == 0x7F) {
                 mixxxToggle(fxgroup(groupNum), 'enabled');
-                sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+                sp1.ledSet(ret._physGet(false, latch), mixxxGet(fxgroup(groupNum), 'enabled'));
             }
         };
-        sp1.ledSet(ret._physGet(latch), mixxxGet(fxgroup(groupNum), 'enabled'));
-    })('knob3', 'fxBtn3', 3);
-    makeFxControl('knob4', 'fxBtn4', 4);
-    // Note that 'L_knob3' and 'R_knob3' is reserved for the deck-specific filter effect
+        sp1.ledSet(ret._physGet(false, latch), mixxxGet(fxgroup(groupNum), 'enabled'));
+    })('fx2knob1', 'fx2latch1', 3);
+    makeFxControl('fx2knob2', 'fx2latch2', 4);
 
-    ret.midi = midi;
+    // knob3/latch3 are redirected to the current left or right deck's filter
+
+    // forward midi messages to the appropriate deck
+    midi[ret._physGet(false, 'fx1knob3')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().deckFilterKnob(value);
+    });
+    midi[ret._physGet(false, 'fx1latch3')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().deckFilterLatch(value);
+        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
+    });
+    midi[ret._physGet(false, 'fx2knob3')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().deckFilterKnob(value);
+    });
+    midi[ret._physGet(false, 'fx2latch3')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().deckFilterLatch(value);
+        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
+    });
+
+    sp1.ledSet(ret._physGet(false, 'fx1latch3'), false);
+    sp1.ledSet(ret._physGet(false, 'fx2latch3'), false);
+
+    // forward rotary to left/right deck
+    midi[ret._physGet(false, 'fx1rotary')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().tempoAdjust(value);
+    });
+    midi[ret._physGet(true, 'fx1rotary')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().pitchAdjust(value);
+    });
+    midi[ret._physGet(false, 'fx2rotary')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().tempoAdjust(value);
+    });
+    midi[ret._physGet(true, 'fx2rotary')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().pitchAdjust(value);
+    });
+
+    midi[ret._physGet(false, 'fx1rotaryBtn')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().tempoReset(value);
+    });
+    midi[ret._physGet(true, 'fx1rotaryBtn')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().pitchReset(value);
+    });
+    midi[ret._physGet(false, 'fx2rotaryBtn')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().tempoReset(value);
+    });
+    midi[ret._physGet(true, 'fx2rotaryBtn')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().pitchReset(value);
+    });
+
     return ret;
 };
 
@@ -800,16 +1473,21 @@ sp1.init = function(id, debugging) {
 
     try
     {
+        sp1.midi = {};
+        sp1.getLeftDeck = function() {
+            return this.currentLeftDeck;
+        };
+        sp1.getRightDeck = function() {
+            return this.currentRightDeck;
+        }
         sp1.fx = makeFx();
         sp1.deck1 = makeDeck(1);
         sp1.deck2 = makeDeck(2);
         sp1.deck3 = makeDeck(3);
         sp1.deck4 = makeDeck(4);
 
+        // NOTE: middle controls currentLeftDeck/currentRightDeck
         sp1.middle = makeMiddle();
-
-        sp1.currentLeftDeck  = sp1.deck1;
-        sp1.currentRightDeck = sp1.deck2;
 
         sp1.buildDispatchMap();
     }
@@ -832,6 +1510,8 @@ sp1.shutdown = function() {
 sp1.buildDispatchMap = function() {
     var dm = {};
 
+    sp1.handlers = [];
+
     var add = function(status, midinumber, f) {
         if (typeof dm[status] === 'undefined') {
             dm[status] = {};
@@ -842,49 +1522,49 @@ sp1.buildDispatchMap = function() {
     // go through each key, and map the status+midinumber pair to the deck function that
     // handles it
     var physKeys = Object.keys(sp1.midiMap);
-    var logicalSurfaceCall = function(physKey, surface, fargs) {
-        // has the surface defined a handler for this message?
-        var handler = surface.midi[physKey];
-        if (typeof handler !== 'undefined') {
-            handler.apply(surface, fargs);
-        } else {
-            var deckMappings = Object.keys(surface.midi);
-        }
-    };
+
+    var thises = {};
+    thises['deck1_'] = sp1.deck1;
+    thises['deck2_'] = sp1.deck2;
+    thises['deck3_'] = sp1.deck3;
+    thises['deck4_'] = sp1.deck4;
+    thises['middle_'] = sp1.middle;
+    thises['fx_'] = sp1.fx;
+
+    var thisesKeys = Object.keys(thises);
+
     for (var i = 0; i < physKeys.length; ++i) {
         var midiValues = sp1.midiMap[physKeys[i]];
-        var wrapper;
-        if (physKeys[i].indexOf('L_') == 0) {
-            // it's a left side message
-            wrapper = function(physKey) { return function(args) {
-                var deck  = sp1.currentLeftDeck;
-                logicalSurfaceCall(physKey, deck, arguments);
-            } }(physKeys[i]);
-        } else if (physKeys[i].indexOf('R_') == 0) {
-            // it's a right side message
-            wrapper = function(physKey) { return function(args) {
-                var deck  = sp1.currentRightDeck;
-                logicalSurfaceCall(physKey, deck, arguments);
-            } }(physKeys[i]);
-        } else if (physKeys[i].indexOf('M_') == 0) {
-            wrapper = function(physKey) { return function(args) {
-                var middle = sp1.middle;
-                logicalSurfaceCall(physKey, middle, arguments);
+        var wrapper = function(physKey) {
+            var This = null;
+            for (var t = 0; t < thisesKeys.length; ++t) {
+                if (physKey.indexOf(thisesKeys[t] == 0)) {
+                    This = thises[thisesKeys[t]];
+                    break;
+                }
             }
-            } (physKeys[i]);
-        } else if (physKeys[i].indexOf('F_') == 0) {
-            wrapper = function(physKey) { return function(args) {
-                var fx = sp1.fx;
-                logicalSurfaceCall(physKey, fx, arguments);
+            if (This === null) {
+                throw "Couldn't find a this for " + physKey;
             }
-            } (physKeys[i]);
-        }
-        if (wrapper) {
-            add(midiValues[0], midiValues[1], wrapper);
-        }
+            var handler = sp1.midi[physKey];
+            if (handler) {
+                sp1.handlers.push(physKey);
+                return function (args) {
+                    handler.apply(This, arguments);
+                }
+            } else {
+                return undefined;
+            }
+        } (physKeys[i]);
+        add(midiValues[0], midiValues[1], wrapper);
     }
 
     sp1.dispatchMap = dm;
+};
+
+sp1.dumpMidiHandlers = function() {
+    dbglog(JSON.stringify(sp1.midi));
+    dbglog(JSON.stringify(sp1.handlers));
 };
 
 sp1.dispatch = function(channel, control, value, status, group) {
@@ -898,9 +1578,10 @@ sp1.dispatch = function(channel, control, value, status, group) {
     }
     var f = sp1.dispatchMap[status][control];
     if (f) {
-        f.apply(sp1, arguments);
+        f.apply(null, arguments);
     } else {
-        script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");
+        //script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");
+        //sp1.dumpMidiHandlers();
     }
 };
 

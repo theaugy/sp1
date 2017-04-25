@@ -61,16 +61,21 @@ sp1.init = function(id, debugging) {
 
     try
     {
+        sp1.midi = {};
+        sp1.getLeftDeck = function() {
+            return this.currentLeftDeck;
+        };
+        sp1.getRightDeck = function() {
+            return this.currentRightDeck;
+        }
         sp1.fx = makeFx();
         sp1.deck1 = makeDeck(1);
         sp1.deck2 = makeDeck(2);
         sp1.deck3 = makeDeck(3);
         sp1.deck4 = makeDeck(4);
 
+        // NOTE: middle controls currentLeftDeck/currentRightDeck
         sp1.middle = makeMiddle();
-
-        sp1.currentLeftDeck  = sp1.deck1;
-        sp1.currentRightDeck = sp1.deck2;
 
         sp1.buildDispatchMap();
     }
@@ -93,6 +98,8 @@ sp1.shutdown = function() {
 sp1.buildDispatchMap = function() {
     var dm = {};
 
+    sp1.handlers = [];
+
     var add = function(status, midinumber, f) {
         if (typeof dm[status] === 'undefined') {
             dm[status] = {};
@@ -103,49 +110,49 @@ sp1.buildDispatchMap = function() {
     // go through each key, and map the status+midinumber pair to the deck function that
     // handles it
     var physKeys = Object.keys(sp1.midiMap);
-    var logicalSurfaceCall = function(physKey, surface, fargs) {
-        // has the surface defined a handler for this message?
-        var handler = surface.midi[physKey];
-        if (typeof handler !== 'undefined') {
-            handler.apply(surface, fargs);
-        } else {
-            var deckMappings = Object.keys(surface.midi);
-        }
-    };
+
+    var thises = {};
+    thises['deck1_'] = sp1.deck1;
+    thises['deck2_'] = sp1.deck2;
+    thises['deck3_'] = sp1.deck3;
+    thises['deck4_'] = sp1.deck4;
+    thises['middle_'] = sp1.middle;
+    thises['fx_'] = sp1.fx;
+
+    var thisesKeys = Object.keys(thises);
+
     for (var i = 0; i < physKeys.length; ++i) {
         var midiValues = sp1.midiMap[physKeys[i]];
-        var wrapper;
-        if (physKeys[i].indexOf('L_') == 0) {
-            // it's a left side message
-            wrapper = function(physKey) { return function(args) {
-                var deck  = sp1.currentLeftDeck;
-                logicalSurfaceCall(physKey, deck, arguments);
-            } }(physKeys[i]);
-        } else if (physKeys[i].indexOf('R_') == 0) {
-            // it's a right side message
-            wrapper = function(physKey) { return function(args) {
-                var deck  = sp1.currentRightDeck;
-                logicalSurfaceCall(physKey, deck, arguments);
-            } }(physKeys[i]);
-        } else if (physKeys[i].indexOf('M_') == 0) {
-            wrapper = function(physKey) { return function(args) {
-                var middle = sp1.middle;
-                logicalSurfaceCall(physKey, middle, arguments);
+        var wrapper = function(physKey) {
+            var This = null;
+            for (var t = 0; t < thisesKeys.length; ++t) {
+                if (physKey.indexOf(thisesKeys[t] == 0)) {
+                    This = thises[thisesKeys[t]];
+                    break;
+                }
             }
-            } (physKeys[i]);
-        } else if (physKeys[i].indexOf('F_') == 0) {
-            wrapper = function(physKey) { return function(args) {
-                var fx = sp1.fx;
-                logicalSurfaceCall(physKey, fx, arguments);
+            if (This === null) {
+                throw "Couldn't find a this for " + physKey;
             }
-            } (physKeys[i]);
-        }
-        if (wrapper) {
-            add(midiValues[0], midiValues[1], wrapper);
-        }
+            var handler = sp1.midi[physKey];
+            if (handler) {
+                sp1.handlers.push(physKey);
+                return function (args) {
+                    handler.apply(This, arguments);
+                }
+            } else {
+                return undefined;
+            }
+        } (physKeys[i]);
+        add(midiValues[0], midiValues[1], wrapper);
     }
 
     sp1.dispatchMap = dm;
+};
+
+sp1.dumpMidiHandlers = function() {
+    dbglog(JSON.stringify(sp1.midi));
+    dbglog(JSON.stringify(sp1.handlers));
 };
 
 sp1.dispatch = function(channel, control, value, status, group) {
@@ -159,9 +166,10 @@ sp1.dispatch = function(channel, control, value, status, group) {
     }
     var f = sp1.dispatchMap[status][control];
     if (f) {
-        f.apply(sp1, arguments);
+        f.apply(null, arguments);
     } else {
-        script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");
+        //script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");
+        //sp1.dumpMidiHandlers();
     }
 };
 

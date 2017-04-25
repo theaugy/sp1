@@ -3,130 +3,140 @@
 
 var makeDeck = function(deckNum) {
     var ret = {};
-    if (deckNum == 1 || deckNum == 3) {
-        ret.physicalPrefix = 'L_';
-    } else {
-        ret.physicalPrefix = 'R_';
-    }
+    ret.physicalPrefix='deck' + deckNum + '_';
     ret.deck = deckNum;
 
     // this will map a physical midi key to a function that accepts channel,
     // status, etc.
-    var midi = {};
+    var midi = sp1.midi;
 
-    ret._physGet = function(logicalKey) {
-        return ret.physicalPrefix + logicalKey;
+    ret._physGet = function (opts) {
+        return ret.physicalPrefix + opts.mode + '_' + opts.shift + '_' + opts.key;
     };
-    ret._midiGet = function(logicalKey) {
-        return sp1.midiMap[ret._physGet(logicalKey)];
+    ret._mode = function(mode) {
+        return ret.physicalPrefix + mode;
+    };
+    // shorthand for 'mode, shift, key' tuple
+    ret._msk = function(m, s, k) {
+        if (m === false || m === 0) {
+            m = "anymode";
+        }
+        if (s === true) {
+            s = 'shifton';
+        } else {
+            s = 'shiftoff';
+        }
+        return ret._physGet({ mode: m, shift: s, key: k });
     };
 
-
-    var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-    midi[ret._physGet('knob3')] = function(channel, control, value, status, group) {
+    // called by fx
+    ret.deckFilterKnob = function(value) {
+        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
         mixxxSet(deckFilter, 'super1', valueFromMidi(value));
     };
-
-    midi[ret._physGet('fxBtn3')] = function(channel, control, value, status, group) {
-        if (mixxxLatch(value, deckFilter, 'enabled')) {
-            sp1.ledSet(ret._physGet('fxBtn3'), mixxxGet(deckFilter, 'enabled'));
-        }
+    ret.deckFilterLatch = function(value) {
+        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
+        mixxxLatch(value, deckFilter, 'enabled');
     };
-    sp1.ledSet(ret._physGet('fxBtn3'), mixxxGet(deckFilter, 'enabled'));
+    ret.deckFilterLatchGet = function() {
+        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
+        return mixxxGet(deckFilter, 'enabled');
+    };
 
     ret.channel = '[Channel' + ret.deck + ']';
 
     // NOTE: If you're looking for the autoloop or param midi configurations, it is below the 'roll'
     // pad mode stuff (because it needs to be aware of the 'roll' mode)
 
-    var tempoAdjust = midiValueHandler(function(value) {
+    ret.tempoAdjust = function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up'); });
-    });
+    };
 
     // independent of tempo
-    var pitchAdjust = midiValueHandler(function(value) {
+    ret.pitchAdjust = function(value) {
         var ticks = ticksFromRotary(value);
         var pitch = mixxxVGet(ret.channel, 'pitch');
-        dbglog("pitch is: " + pitch);
         perRightTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') + 1); });
         perLeftTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') - 1); });
-    });
-    var pitchReset = midiValueHandler(function(value) {
+    };
+    ret.pitchReset = function(value) {
         mixxxVSet(ret.channel, 'pitch', 0);
-    });
+    };
 
     // adjusts tempo+pitch
-    var tempoAdjustSmall = midiValueHandler(function(value) {
+    ret.tempoAdjustSmall = function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down_small'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up_small'); });
-    });
-
-    var tempoReset = midiValueHandler(function(value) {
-        if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
-    });
-
-    midi[ret._physGet('beatRotary')] = tempoAdjust;
-    midi[ret._physGet('beatRotary_shift')] = pitchAdjust;
-    midi[ret._physGet('beatRotaryBtn')] = tempoReset;
-    midi[ret._physGet('beatRotaryBtn_shift')] = pitchReset;
-
-    midi[ret._physGet('sync')] = function(channel, control, value, status, group) {
-        mixxxButton(value, ret.channel, 'beatsync_tempo');
     };
 
-    midi[ret._physGet('slipBtn')] = function(channel, control, value, status, group) {
+    ret.tempoReset = function(value) {
+        if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
+    };
+
+    var sync = midiValueHandler(function(value) {
+        mixxxButton(value, ret.channel, 'beatsync_tempo');
+    });
+
+    var slip = midiValueHandler(function(value) {
         mixxxLatch(value, ret.channel, 'slip_enabled');
         if (value == 0x7F) {
-            sp1.ledSet(ret._physGet('slipBtn'), mixxxGet(ret.channel, 'slip_enabled'));
+            sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
         }
-    };
-    sp1.ledSet(ret._physGet('slipBtn'), mixxxGet(ret.channel, 'slip_enabled'));
+    });
+
+
+    midi[ret._msk(false, false, 'sync')] = sync;
+    midi[ret._msk(false, false, 'slip')] = slip;
+    sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
 
     ret.currentPadMode = 'hotcues';
     ret.padMode = {}; // maps a pad mode name to a pad mode object
     ret.refreshPadLeds = function() {
-        for (var i = 1; i <= 32; ++i) {
-            sp1.ledOff(ret._physGet('pad' + i));
+        for (var i = 1; i <= 8; ++i) {
+            sp1.ledOff(ret._msk(ret.currentPadMode, false, 'pad' + i));
+            sp1.ledOff(ret._msk(ret.currentPadMode, true, 'pad' + i));
         }
-        sp1.ledOff(ret._physGet('hotCue'));
-        sp1.ledOff(ret._physGet('roll'));
-        sp1.ledOff(ret._physGet('slicer'));
-        sp1.ledOff(ret._physGet('sampler'));
+        sp1.ledOff(ret._mode('hotcue'));
+        sp1.ledOff(ret._mode('roll'));
+        sp1.ledOff(ret._mode('slicer'));
+        sp1.ledOff(ret._mode('sampler'));
         ret.padMode[ret.currentPadMode].setLeds();
     };
     ret.setPadMode = function(newmode) {
-        //dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
+        dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
         ret.currentPadMode = newmode;
         ret.refreshPadLeds();
     }
 
     var hotcues = {}; // pad mode object
     hotcues.setLeds = function() {
+        // NOTE: not doing anything with the shift-pads
         for (var i = 1; i <= 8; ++i) {
-            sp1.ledSet(ret._physGet('pad' + i), mixxxGet(ret.channel, 'hotcue_' + i + '_enabled'));
+            var ledon = mixxxGet(ret.channel, 'hotcue_' + i + '_enabled');
+            sp1.ledSet(ret._msk('hotcue', false, 'pad' + i), ledon);
         }
-        sp1.ledOn(ret._physGet('hotCue'));
+        sp1.ledOn(ret._mode('hotcue'));
     };
 
     // pressing hotCue button sets the current pad mode to 'hotcues'
-    midi[ret._physGet('hotCue')] = function (channel, control, value, status, group) {
+    midi[ret._mode('hotcue')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
             ret.setPadMode('hotcues');
         }
-    };
+    });
 
     var makePad = function(hactivate, physKey) {
-        hotcues[physKey] = function (channel, control, value, status, group) {
+        midi[physKey] = midiValueHandler(function(value) {
             mixxxButton(value, ret.channel, hactivate);
-        };
+        });
     };
 
     for (var i = 1; i <= 8; ++i) {
         // NOTE: gotoandplay is used to avoid accidentally setting cue points.
-        makePad('hotcue_' + i + '_gotoandplay', ret._physGet('pad' + i));
+        makePad('hotcue_' + i + '_gotoandplay', ret._msk('hotcue', false, 'pad' + i));
     }
 
     ret.padMode['hotcues'] = hotcues;
@@ -145,7 +155,8 @@ var makeDeck = function(deckNum) {
     };
     // OK to pass nothing for 'eighths'; setLeds() will get it itself if needed.
     roll.setLeds = function(eighths) {
-        sp1.ledOn(ret._physGet('roll'));
+        dbglog('setting roll LED on');
+        sp1.ledOn(ret._mode('roll'));
         // turn on the LED corresponding to the beat loop size we are at
         if (typeof eighths === 'undefined') {
             eighths = Math.round(roll.getLoopEighths());
@@ -153,14 +164,14 @@ var makeDeck = function(deckNum) {
         if (eighths > 0) {
             if (eighths >= 1 && eighths <= (16 * 8)) {
                 switch (eighths) {
-                    case 1: sp1.ledOn(ret._physGet('pad9')); break;
-                    case 2: sp1.ledOn(ret._physGet('pad10')); break;
-                    case 4: sp1.ledOn(ret._physGet('pad11')); break;
-                    case 8: sp1.ledOn(ret._physGet('pad12')); break;
-                    case 16: sp1.ledOn(ret._physGet('pad13')); break;
-                    case 32: sp1.ledOn(ret._physGet('pad14')); break;
-                    case 64: sp1.ledOn(ret._physGet('pad15')); break;
-                    case 128: sp1.ledOn(ret._physGet('pad16')); break;
+                    case 1: sp1.ledOn(ret._msk('roll', false, 'pad1')); break;
+                    case 2: sp1.ledOn(ret._msk('roll', false, 'pad2')); break;
+                    case 4: sp1.ledOn(ret._msk('roll', false, 'pad3')); break;
+                    case 8: sp1.ledOn(ret._msk('roll', false, 'pad4')); break;
+                    case 16: sp1.ledOn(ret._msk('roll', false, 'pad5')); break;
+                    case 32: sp1.ledOn(ret._msk('roll', false, 'pad6')); break;
+                    case 64: sp1.ledOn(ret._msk('roll', false, 'pad7')); break;
+                    case 128: sp1.ledOn(ret._msk('roll', false, 'pad8')); break;
                     default:
                         dbglog(eighths + ' didnt match anything!');
                 }
@@ -171,19 +182,19 @@ var makeDeck = function(deckNum) {
         }
     };
     roll.clearLeds = function() {
-        for (var i = 9; i <= 16; ++i) {
-            sp1.ledOff(ret._physGet('pad' + i));
+        for (var i = 1; i <= 8; ++i) {
+            sp1.ledOff(ret._msk('roll', false, 'pad' + i));
         }
     };
 
-    midi[ret._physGet('roll')] = function(channel, control, value, status, group) {
+    midi[ret._mode('roll')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
             ret.setPadMode('roll');
         }
-    };
+    });
 
     makePad = function(lengthInBeats, setloop, physKey) {
-        roll[physKey] = function (channel, control, value, status, group) {
+        midi[physKey] = midiValueHandler(function(value) {
             if (value != 0x7F) return;
             if (Math.round(roll.getLoopEighths()) == Math.round(lengthInBeats*8) && mixxxGet(ret.channel, 'loop_enabled')) {
                 // loop is already set to this value and enabled. Disable the loop.
@@ -196,16 +207,16 @@ var makeDeck = function(deckNum) {
                 roll.clearLeds();
                 sp1.ledOn(physKey);
             }
-        };
+        });
     };
 
     var beatlength = (1/8);
-    for (var i = 9; i <= 16; ++i) {
-        makePad(beatlength, 'beatloop_' + beatlength + '_toggle', ret._physGet('pad' + i));
+    for (var i = 1; i <= 8; ++i) {
+        makePad(beatlength, 'beatloop_' + beatlength + '_toggle', ret._msk('roll', false, 'pad' + i));
         beatlength *= 2;
     }
 
-    midi[ret._physGet('loopRotary')] = function(channel, control, value, status, group) {
+    midi[ret._msk(false, false, 'autoloop')] = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         var loopLength = roll.getLoopEighths();
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'loop_double'); loopLength *= 2; });
@@ -219,62 +230,42 @@ var makeDeck = function(deckNum) {
             // handler.
             rollmode.setLeds(Math.round(loopLength));
         }
-    };
+    });
 
     // This doesn't seem to work with the beat loop controls? weird.
-    midi[ret._physGet('loopRotaryBtn')] = function(channel, control, value, status, group) {
+    midi[ret._msk(false, false, 'autoloopBtn')] = midiValueHandler(function(value) {
         mixxxButtonPress(ret.channel, 'reloop_exit');
-    };
+    });
 
-    midi[ret._physGet('paramBackRoll')] = function(channel, control, value, status, group) {
+    // paramleft
+    midi[ret._msk('roll', false, 'paramLeft')] = midiValueHandler(function(value) {
         // For 2.1+:
         //mixxxButton(value, ret.channel, 'loop_move_backward_beatloop_size');
         var key = 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_backward';
         mixxxButton(value, ret.channel, key);
-    };
-    midi[ret._physGet('paramBackHotcue')] = midi[ret._physGet('paramBackRoll')];
-    midi[ret._physGet('paramForwardRoll')] = function(channel, control, value, status, group) {
-        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
-    };
-    midi[ret._physGet('paramForwardHotcue')] = midi[ret._physGet('paramForwardRoll')];
+    });
+    midi[ret._msk('hotcue', false, 'paramLeft')] = midi[ret._msk('roll', false, 'paramLeft')];
 
-    // holding shift jumps you 8x further
-    midi[ret._physGet('paramBackRoll_shift')] = function(channel, control, value, status, group) {
+    // paramright
+    midi[ret._msk('roll', false, 'paramRight')] = midiValueHandler(function(value) {
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
+    });
+    midi[ret._msk('hotcue', false, 'paramRight')] = midi[ret._msk('roll', false, 'paramRight')];
+
+    // shift+paramleft/right jumps you 8x further
+    midi[ret._msk('roll', true, 'paramLeft')] = midiValueHandler(function(value) {
         var key = 'loop_move_' + Math.round(roll.getLoopEighths()) + '_backward';
         mixxxButton(value, ret.channel, key);
-    };
-    midi[ret._physGet('paramBackHotcue_shift')] = midi[ret._physGet('paramBackRoll_shift')];
-    midi[ret._physGet('paramForwardRoll_shift')] = function(channel, control, value, status, group) {
+    });
+    midi[ret._msk('hotcue', true, 'paramLeft')] = midi[ret._msk('roll', true, 'paramLeft')];
+
+    // shift+paramright
+    midi[ret._msk('roll', true, 'paramRight')] = midiValueHandler(function(value) {
         mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) + '_forward');
-    };
-    midi[ret._physGet('paramForwardHotcue_shift')] = midi[ret._physGet('paramForwardRoll_shift')];
+    });
+    midi[ret._msk('hotcue', true, 'paramRight')] = midi[ret._msk('roll', true, 'paramRight')];
 
     ret.padMode['roll'] = roll;
-
-    // forward pad presses to our current pad mode
-    var dispatchPad = function(pad, args) {
-        var pads = ret.padMode[ret.currentPadMode];
-        if (typeof pads === 'undefined') {
-            dbglog('No pad mode matching ' + ret.currentPadMode);
-            return;
-        }
-        var handler = pads[ret._physGet(pad)];
-        if (handler) {
-            handler.apply(pads, args);
-        }
-    };
-    for (var i = 1; i <= 32; ++i) {
-        midi[ret._physGet('pad' + i)] = function(i) { return function(args) {
-            dispatchPad('pad' + i, arguments);
-        }
-        }(i);
-    };
-
-    midi[ret._physGet('loopRotaryBtn')] = function(channel, control, value, status, group) {
-        mixxxButtonPress(ret.channel, 'beatsync_tempo');
-    };
-
-    ret.midi = midi;
 
     return ret;
 };
