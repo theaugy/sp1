@@ -1,9 +1,10 @@
+// This is the 'main' file from which sp1.js is generated.
+// It just includes the other components, and sets up the
+// dispatch map.
 
 var sp1 = {};
 
-var dbglog = function(msg) {
-    script.midiDebug(0, 0, 0, 0, msg);
-}
+//// include sp1-midiMap.js
 
 // each button/knob/etc. on the sp1 surface is identified by a status+midinumber pair.
 // The map is ordered:
@@ -195,66 +196,14 @@ sp1.midiMap = {
     M_vol: [ 0xB6 , 0x03 , {led: false , type: 'knob'}] ,
     M_volDetail: [ 0xB6 , 0x23 , {led: false , type: 'detail'}]
 };
+// End of sp1-midiMap.js
+//// include sp1-lib.js
+//
+// functions in this file should be sp1-object agnostic
 
-// NOTE: This reflects the order in which the effects cycle in the mixxx ui.
-// Therefore, this is a particularly brittle component of this script.
-sp1._fx = [
-     'flanger',
-     'bitcrusher' ,
-     'filter' ,
-     'reverb' ,
-     'echo' 
-];
-
-sp1._midiGet = function(physKey) {
-    var midi = sp1.midiMap[physKey];
-    if (typeof midi === 'undefined') {
-        throw 'physKey ' + physKey + ' doesnt match anything in midiMap';
-    }
-    return midi;
-};
-
-sp1.ledOn = function(physKey) {
-    var m = null;
-    try {
-        m = sp1._midiGet(physKey);
-    } catch (e) {
-        return;
-    }
-    if (m[2].led === true) {
-        midi.sendShortMsg(m[0], m[1], 0x7F);
-    } else {
-    }
-};
-
-sp1.ledOff = function(physKey) {
-    var m = null;
-    try {
-        m = sp1._midiGet(physKey);
-    } catch (e) {
-        return;
-    }
-    if (m[2].led === true) {
-        midi.sendShortMsg(m[0], m[1], 0x00);
-    }
-};
-
-sp1.ledSet = function(physKey, value) {
-    var m = null;
-    try {
-        m = sp1._midiGet(physKey);
-    } catch (e) {
-        return;
-    }
-    if (m[2].led === true) {
-        midi.sendShortMsg(m[0], m[1], value? 0x7F : 0x00);
-    }
-};
-
-// this is apparently a sysex message understood by all serato-certified
-// controllers. It will cause the controller to spit out a status for
-// all of its controls (sliders/knobs, maybe also buttons will be triggered?)
-var ControllerStatusSysex = [0xF0, 0x00, 0x20, 0x7F, 0x03, 0x01, 0xF7];
+var dbglog = function(msg) {
+    script.midiDebug(0, 0, 0, 0, msg);
+}
 
 var mixxxSet = function(group, key, value) {
     engine.setParameter(group, key, value);
@@ -343,6 +292,15 @@ samplesToBeats = function(samples, bpm, rate) {
     //dbglog(samples + ' samples == ' + beats + ' beats at ' + rate + 'Hz and ' + bpm + 'bpm');
     return beats;
 };
+
+// this is apparently a sysex message understood by all serato-certified
+// controllers. It will cause the controller to spit out a status for
+// all of its controls (sliders/knobs, maybe also buttons will be triggered?)
+var ControllerStatusSysex = [0xF0, 0x00, 0x20, 0x7F, 0x03, 0x01, 0xF7];
+// End of sp1-lib.js
+//// include sp1-deck.js
+//
+// Creates midi handlers for a logical deck
 
 var makeDeck = function(deckNum) {
     var ret = {};
@@ -577,6 +535,10 @@ var makeDeck = function(deckNum) {
 
     return ret;
 };
+// End of sp1-deck.js
+//// include sp1-middle.js
+//
+// Creates midi handlers for the middle section of the sp1
 
 var makeMiddle = function() {
     var ret = {};
@@ -633,6 +595,23 @@ var makeMiddle = function() {
 
     return ret;
 };
+
+// End of sp1-middle.js
+//// include sp1-fx.js
+//
+// Creates midi handlers for the fx portion of the sp1
+// Note that the 'fx portion' refers to the portion that
+// _we_ use as the global fx (first 2 knobs/latches on each side)
+
+// NOTE: This reflects the order in which the effects cycle in the mixxx ui.
+// Therefore, this is a particularly brittle component of this script.
+sp1._fx = [
+     'flanger',
+     'bitcrusher' ,
+     'filter' ,
+     'reverb' ,
+     'echo' 
+];
 
 var makeFx = function() {
 
@@ -698,6 +677,53 @@ var makeFx = function() {
 
     ret.midi = midi;
     return ret;
+};
+
+// End of sp1-fx.js
+
+sp1._midiGet = function(physKey) {
+    var midi = sp1.midiMap[physKey];
+    if (typeof midi === 'undefined') {
+        throw 'physKey ' + physKey + ' doesnt match anything in midiMap';
+    }
+    return midi;
+};
+
+sp1.ledOn = function(physKey) {
+    var m = null;
+    try {
+        m = sp1._midiGet(physKey);
+    } catch (e) {
+        return;
+    }
+    if (m[2].led === true) {
+        midi.sendShortMsg(m[0], m[1], 0x7F);
+    } else {
+    }
+};
+
+sp1.ledOff = function(physKey) {
+    var m = null;
+    try {
+        m = sp1._midiGet(physKey);
+    } catch (e) {
+        return;
+    }
+    if (m[2].led === true) {
+        midi.sendShortMsg(m[0], m[1], 0x00);
+    }
+};
+
+sp1.ledSet = function(physKey, value) {
+    var m = null;
+    try {
+        m = sp1._midiGet(physKey);
+    } catch (e) {
+        return;
+    }
+    if (m[2].led === true) {
+        midi.sendShortMsg(m[0], m[1], value? 0x7F : 0x00);
+    }
 };
 
 sp1.init = function(id, debugging) {
@@ -809,3 +835,4 @@ sp1.dispatch = function(channel, control, value, status, group) {
         script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");
     }
 };
+
