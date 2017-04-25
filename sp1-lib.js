@@ -9,6 +9,10 @@ var mixxxSet = function(group, key, value) {
     engine.setParameter(group, key, value);
 };
 
+var mixxxVSet = function(group, key, value) {
+    engine.setValue(group, key, value);
+};
+
 // when you want to trigger a button press+release
 var mixxxButtonPress = function(group, key) {
     mixxxSet(group, key, true);
@@ -38,6 +42,10 @@ var mixxxToggle = function(group, key) {
 
 var mixxxGet = function(group, key) {
     return engine.getParameter(group, key);
+};
+
+var mixxxVGet = function(group, key) {
+    return engine.getValue(group, key);
 };
 
 var valueFromMidi = function(midiValue) {
@@ -84,13 +92,21 @@ var cycleFx = function(fxunit, byAmount) {
     }
 };
 
-samplesToBeats = function(samples, bpm, rate) {
+var samplesToBeats = function(samples, bpm, rate) {
     var spm = rate * 60; // samples per minute
     var spb = spm / bpm; // samples per beat
     var beats = samples / spb;
     beats = beats / 2; // for reasons I do not understand, this math always comes up 2x what it should be.
     //dbglog(samples + ' samples == ' + beats + ' beats at ' + rate + 'Hz and ' + bpm + 'bpm');
     return beats;
+};
+
+// most of the time, we only care about the value, since our design ensures that the
+// rest of the values are superfluous
+var midiValueHandler = function(f) {
+    return function(channel, control, value, status, group) {
+        return f(value);
+    };
 };
 
 // this is apparently a sysex message understood by all serato-certified

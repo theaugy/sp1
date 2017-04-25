@@ -36,21 +36,42 @@ var makeDeck = function(deckNum) {
 
     ret.channel = '[Channel' + ret.deck + ']';
 
-    midi[ret._physGet('beatRotary')] = function(channel, control, value, status, group) {
+    // NOTE: If you're looking for the autoloop or param midi configurations, it is below the 'roll'
+    // pad mode stuff (because it needs to be aware of the 'roll' mode)
+
+    var tempoAdjust = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up'); });
-    };
+    });
 
-    midi[ret._physGet('beatRotary_shift')] = function(channel, control, value, status, group) {
+    // independent of tempo
+    var pitchAdjust = midiValueHandler(function(value) {
+        var ticks = ticksFromRotary(value);
+        var pitch = mixxxVGet(ret.channel, 'pitch');
+        dbglog("pitch is: " + pitch);
+        perRightTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') + 1); });
+        perLeftTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') - 1); });
+    });
+    var pitchReset = midiValueHandler(function(value) {
+        mixxxVSet(ret.channel, 'pitch', 0);
+    });
+
+    // adjusts tempo+pitch
+    var tempoAdjustSmall = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down_small'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up_small'); });
-    };
+    });
 
-    midi[ret._physGet('beatRotaryBtn')] = function(channel, control, value, status, group) {
-        mixxxSet(ret.channel, 'rate', .5); // reset speed
-    };
+    var tempoReset = midiValueHandler(function(value) {
+        if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
+    });
+
+    midi[ret._physGet('beatRotary')] = tempoAdjust;
+    midi[ret._physGet('beatRotary_shift')] = pitchAdjust;
+    midi[ret._physGet('beatRotaryBtn')] = tempoReset;
+    midi[ret._physGet('beatRotaryBtn_shift')] = pitchReset;
 
     midi[ret._physGet('sync')] = function(channel, control, value, status, group) {
         mixxxButton(value, ret.channel, 'beatsync_tempo');
@@ -204,6 +225,29 @@ var makeDeck = function(deckNum) {
     midi[ret._physGet('loopRotaryBtn')] = function(channel, control, value, status, group) {
         mixxxButtonPress(ret.channel, 'reloop_exit');
     };
+
+    midi[ret._physGet('paramBackRoll')] = function(channel, control, value, status, group) {
+        // For 2.1+:
+        //mixxxButton(value, ret.channel, 'loop_move_backward_beatloop_size');
+        var key = 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_backward';
+        mixxxButton(value, ret.channel, key);
+    };
+    midi[ret._physGet('paramBackHotcue')] = midi[ret._physGet('paramBackRoll')];
+    midi[ret._physGet('paramForwardRoll')] = function(channel, control, value, status, group) {
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
+    };
+    midi[ret._physGet('paramForwardHotcue')] = midi[ret._physGet('paramForwardRoll')];
+
+    // holding shift jumps you 8x further
+    midi[ret._physGet('paramBackRoll_shift')] = function(channel, control, value, status, group) {
+        var key = 'loop_move_' + Math.round(roll.getLoopEighths()) + '_backward';
+        mixxxButton(value, ret.channel, key);
+    };
+    midi[ret._physGet('paramBackHotcue_shift')] = midi[ret._physGet('paramBackRoll_shift')];
+    midi[ret._physGet('paramForwardRoll_shift')] = function(channel, control, value, status, group) {
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) + '_forward');
+    };
+    midi[ret._physGet('paramForwardHotcue_shift')] = midi[ret._physGet('paramForwardRoll_shift')];
 
     ret.padMode['roll'] = roll;
 

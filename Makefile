@@ -7,6 +7,9 @@ files = \
 	sp1.js \
 	Pioneer_DDJ-SP1_MIDI_1.midi.xml \
 
+install: $(files)
+	cp $^ $(target)
+
 Pioneer_DDJ-SP1_MIDI_1.midi.xml : top.xml bottom.xml sp1-generate-xml.sh sp1.js
 	cp top.xml $@
 	./sp1-generate-xml.sh >> $@
@@ -24,8 +27,5 @@ components = \
 sp1.js : $(components) sp1-js-make.sh
 	./sp1-js-make.sh > $@
 
-
-install: $(files)
-	cp $^ $(target)
 
 .PHONY: install

@@ -48,8 +48,12 @@ sp1.midiMap = {
     L_slipBtn: [ 0x90 , 0x40 , {led: true , type: 'button'}] ,
     // the censor button , however , does not have a 'latch' midi signal.
     L_censor: [ 0x90 , 0x15 , {led: true , type: 'button'}] ,
-    L_paramBack: [ 0x90 , 0x24 , {led: true , type: 'button'}] ,
-    L_paramForward: [ 0x90 , 0x2C , {led: true , type: 'button'}] ,
+    L_paramBackHotcue: [ 0x90 , 0x24 , {led: true , type: 'button'}] ,
+    L_paramForwardHotcue: [ 0x90 , 0x2C , {led: true , type: 'button'}] ,
+    L_paramBackRoll: [ 0x90 , 0x25 , {led: true , type: 'button'}] ,
+    L_paramBackRoll_shift: [ 0x90 , 0x02 , {led: true , type: 'button'}] ,
+    L_paramForwardRoll: [ 0x90 , 0x2D , {led: true , type: 'button'}] ,
+    L_paramForwardRoll_shift: [ 0x90 , 0x7A , {led: true , type: 'button'}] ,
     L_loopRotary: [ 0xB0 , 0x17 , {led: false , type: 'rotary'}] ,
     L_loopRotaryBtn: [ 0x90 , 0x0D , {led: false , type: 'button'}] ,
     L_hotCue: [ 0x90 , 0x1B , {led: true , type: 'button'}] ,
@@ -129,8 +133,12 @@ sp1.midiMap = {
     R_slipLatch: [ 0x91 , 0x3B , {led: true , type: 'latch'}] ,
     R_slipBtn: [ 0x91 , 0x40 , {led: true , type: 'button'}] ,
     R_censor: [ 0x91 , 0x15 , {led: true , type: 'button'}] ,
-    R_paramBack: [ 0x91 , 0x24 , {led: true , type: 'button'}] ,
-    R_paramForward: [ 0x91 , 0x2C , {led: true , type: 'button'}] ,
+    R_paramBackHotcue: [ 0x91 , 0x24 , {led: true , type: 'button'}] ,
+    R_paramBackRoll: [ 0x91 , 0x25 , {led: true , type: 'button'}] ,
+    R_paramBackRoll_shift: [ 0x91 , 0x02 , {led: true , type: 'button'}] ,
+    R_paramForwardHotcue: [ 0x91 , 0x2C , {led: true , type: 'button'}] ,
+    R_paramForwardRoll: [ 0x91 , 0x2D , {led: true , type: 'button'}] ,
+    R_paramForwardRoll_shift: [ 0x91 , 0x7A , {led: true , type: 'button'}] ,
     R_loopRotary: [ 0xB1 , 0x17 , {led: false , type: 'rotary'}] ,
     R_loopRotaryBtn: [ 0x91 , 0x0D , {led: false , type: 'button'}] ,
     R_hotCue: [ 0x91 , 0x1B , {led: true , type: 'button'}] ,
@@ -209,6 +217,10 @@ var mixxxSet = function(group, key, value) {
     engine.setParameter(group, key, value);
 };
 
+var mixxxVSet = function(group, key, value) {
+    engine.setValue(group, key, value);
+};
+
 // when you want to trigger a button press+release
 var mixxxButtonPress = function(group, key) {
     mixxxSet(group, key, true);
@@ -238,6 +250,10 @@ var mixxxToggle = function(group, key) {
 
 var mixxxGet = function(group, key) {
     return engine.getParameter(group, key);
+};
+
+var mixxxVGet = function(group, key) {
+    return engine.getValue(group, key);
 };
 
 var valueFromMidi = function(midiValue) {
@@ -284,13 +300,21 @@ var cycleFx = function(fxunit, byAmount) {
     }
 };
 
-samplesToBeats = function(samples, bpm, rate) {
+var samplesToBeats = function(samples, bpm, rate) {
     var spm = rate * 60; // samples per minute
     var spb = spm / bpm; // samples per beat
     var beats = samples / spb;
     beats = beats / 2; // for reasons I do not understand, this math always comes up 2x what it should be.
     //dbglog(samples + ' samples == ' + beats + ' beats at ' + rate + 'Hz and ' + bpm + 'bpm');
     return beats;
+};
+
+// most of the time, we only care about the value, since our design ensures that the
+// rest of the values are superfluous
+var midiValueHandler = function(f) {
+    return function(channel, control, value, status, group) {
+        return f(value);
+    };
 };
 
 // this is apparently a sysex message understood by all serato-certified
@@ -337,21 +361,42 @@ var makeDeck = function(deckNum) {
 
     ret.channel = '[Channel' + ret.deck + ']';
 
-    midi[ret._physGet('beatRotary')] = function(channel, control, value, status, group) {
+    // NOTE: If you're looking for the autoloop or param midi configurations, it is below the 'roll'
+    // pad mode stuff (because it needs to be aware of the 'roll' mode)
+
+    var tempoAdjust = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up'); });
-    };
+    });
 
-    midi[ret._physGet('beatRotary_shift')] = function(channel, control, value, status, group) {
+    // independent of tempo
+    var pitchAdjust = midiValueHandler(function(value) {
+        var ticks = ticksFromRotary(value);
+        var pitch = mixxxVGet(ret.channel, 'pitch');
+        dbglog("pitch is: " + pitch);
+        perRightTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') + 1); });
+        perLeftTick(ticks, function() { mixxxVSet(ret.channel, 'pitch', mixxxVGet(ret.channel, 'pitch') - 1); });
+    });
+    var pitchReset = midiValueHandler(function(value) {
+        mixxxVSet(ret.channel, 'pitch', 0);
+    });
+
+    // adjusts tempo+pitch
+    var tempoAdjustSmall = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down_small'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up_small'); });
-    };
+    });
 
-    midi[ret._physGet('beatRotaryBtn')] = function(channel, control, value, status, group) {
-        mixxxSet(ret.channel, 'rate', .5); // reset speed
-    };
+    var tempoReset = midiValueHandler(function(value) {
+        if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
+    });
+
+    midi[ret._physGet('beatRotary')] = tempoAdjust;
+    midi[ret._physGet('beatRotary_shift')] = pitchAdjust;
+    midi[ret._physGet('beatRotaryBtn')] = tempoReset;
+    midi[ret._physGet('beatRotaryBtn_shift')] = pitchReset;
 
     midi[ret._physGet('sync')] = function(channel, control, value, status, group) {
         mixxxButton(value, ret.channel, 'beatsync_tempo');
@@ -505,6 +550,29 @@ var makeDeck = function(deckNum) {
     midi[ret._physGet('loopRotaryBtn')] = function(channel, control, value, status, group) {
         mixxxButtonPress(ret.channel, 'reloop_exit');
     };
+
+    midi[ret._physGet('paramBackRoll')] = function(channel, control, value, status, group) {
+        // For 2.1+:
+        //mixxxButton(value, ret.channel, 'loop_move_backward_beatloop_size');
+        var key = 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_backward';
+        mixxxButton(value, ret.channel, key);
+    };
+    midi[ret._physGet('paramBackHotcue')] = midi[ret._physGet('paramBackRoll')];
+    midi[ret._physGet('paramForwardRoll')] = function(channel, control, value, status, group) {
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
+    };
+    midi[ret._physGet('paramForwardHotcue')] = midi[ret._physGet('paramForwardRoll')];
+
+    // holding shift jumps you 8x further
+    midi[ret._physGet('paramBackRoll_shift')] = function(channel, control, value, status, group) {
+        var key = 'loop_move_' + Math.round(roll.getLoopEighths()) + '_backward';
+        mixxxButton(value, ret.channel, key);
+    };
+    midi[ret._physGet('paramBackHotcue_shift')] = midi[ret._physGet('paramBackRoll_shift')];
+    midi[ret._physGet('paramForwardRoll_shift')] = function(channel, control, value, status, group) {
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) + '_forward');
+    };
+    midi[ret._physGet('paramForwardHotcue_shift')] = midi[ret._physGet('paramForwardRoll_shift')];
 
     ret.padMode['roll'] = roll;
 
