@@ -12,8 +12,6 @@ without turntables.
 
     *   Param1 left/right to move beatloop
 
-    *   Break `sp1.js` into files. Let `make` recombine them into `sp1.js`
-
     *   Features in README.md
 
     *   What to do with middle sampler volume slider? Control the last deck (3 or 4) that you loaded?
