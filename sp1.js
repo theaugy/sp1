@@ -1036,7 +1036,7 @@ var makeDeck = function(deckNum) {
         ret.padMode[ret.currentPadMode].setLeds();
     };
     ret.setPadMode = function(newmode) {
-        dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
+        //dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
         ret.currentPadMode = newmode;
         ret.refreshPadLeds();
     }
@@ -1121,7 +1121,6 @@ var makeDeck = function(deckNum) {
     };
     // OK to pass nothing for 'eighths'; setLeds() will get it itself if needed.
     roll.setLeds = function(eighths) {
-        dbglog('setting roll LED on');
         sp1.ledOn(ret._mode('roll'));
         // turn on the LED corresponding to the beat loop size we are at
         if (typeof eighths === 'undefined') {
@@ -1283,8 +1282,8 @@ var makeMiddle = function() {
             if (value == 0x7F) {
                 // toggle deck
                 sp1[member] = (sp1[member] === ondeck)? offdeck : ondeck;
-                dbglog('led ' + led + ' ' + (sp1[member] === ondeck));
                 sp1.ledSet(led, sp1[member] === ondeck);
+                sp1.fx.updateDeckLeds();
             }
         });
     };
@@ -1297,9 +1296,11 @@ var makeMiddle = function() {
             if (value === 0x7F) {
                 sp1[member] = ondeck;
                 sp1.ledSet(led, true);
+                sp1.fx.updateDeckLeds();
             } else {
                 sp1[member] = offdeck;
                 sp1.ledSet(led, false);
+                sp1.fx.updateDeckLeds();
             }
         });
     };
@@ -1476,8 +1477,15 @@ var makeFx = function() {
         sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
     });
 
-    sp1.ledSet(ret._physGet(false, 'fx1latch3'), false);
-    sp1.ledSet(ret._physGet(false, 'fx2latch3'), false);
+    // it would be nice to ask the decks, but fx is built first. So we assume that the
+    // fx are on by default.
+    sp1.ledSet(ret._physGet(false, 'fx1latch3'), true);
+    sp1.ledSet(ret._physGet(false, 'fx2latch3'), true);
+
+    ret.updateDeckLeds = function() {
+        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
+    };
 
     // forward rotary to left/right deck
     midi[ret._physGet(false, 'fx1rotary')] = midiValueHandler(function(value) {

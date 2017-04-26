@@ -89,8 +89,15 @@ var makeFx = function() {
         sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
     });
 
-    sp1.ledSet(ret._physGet(false, 'fx1latch3'), false);
-    sp1.ledSet(ret._physGet(false, 'fx2latch3'), false);
+    // it would be nice to ask the decks, but fx is built first. So we assume that the
+    // fx are on by default.
+    sp1.ledSet(ret._physGet(false, 'fx1latch3'), true);
+    sp1.ledSet(ret._physGet(false, 'fx2latch3'), true);
+
+    ret.updateDeckLeds = function() {
+        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
+    };
 
     // forward rotary to left/right deck
     midi[ret._physGet(false, 'fx1rotary')] = midiValueHandler(function(value) {

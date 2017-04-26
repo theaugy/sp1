@@ -45,6 +45,7 @@ var makeMiddle = function() {
                 // toggle deck
                 sp1[member] = (sp1[member] === ondeck)? offdeck : ondeck;
                 sp1.ledSet(led, sp1[member] === ondeck);
+                sp1.fx.updateDeckLeds();
             }
         });
     };
@@ -57,9 +58,11 @@ var makeMiddle = function() {
             if (value === 0x7F) {
                 sp1[member] = ondeck;
                 sp1.ledSet(led, true);
+                sp1.fx.updateDeckLeds();
             } else {
                 sp1[member] = offdeck;
                 sp1.ledSet(led, false);
+                sp1.fx.updateDeckLeds();
             }
         });
     };
