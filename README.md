@@ -10,8 +10,6 @@ without turntables.
 
     *   Features in README.md
 
-    *   What to do with middle sampler volume slider? Control the last deck (3 or 4) that you loaded?
-
     *   Check for updates for autoloop rotary btn bug (deck3 sends same midi as deck4)
 
     *   Shift+fx1/fx2 functionality?
