@@ -1273,25 +1273,61 @@ var makeMiddle = function() {
     midi[ret._physGet(true, 'fxAssignR1')] = fxenable(3, 3, ret.physicalPrefix + 'fx2Assign3LED');
     midi[ret._physGet(true, 'fxAssignR2')] = fxenable(3, 4, ret.physicalPrefix + 'fx2Assign4LED');
 
-    var switchToDeckN = function(member, deck, ledbtn, ledstate) {
+    var toggleDecks = function(options) {
+        var ondeck = options.ondeck;
+        var offdeck = options.offdeck;
+        var led = options.led;
+        var member = options.member;
+        var current = sp1[member]; // we'll treat this as the off deck
         return midiValueHandler(function(value) {
             if (value == 0x7F) {
-                dbglog("Switching to deck " + deck);
-                sp1[member] = sp1['deck' + deck];
-                sp1.ledSet(ret._physGet(false, ledbtn), ledstate);
+                // toggle deck
+                sp1[member] = (sp1[member] === ondeck)? offdeck : ondeck;
+                dbglog('led ' + led + ' ' + (sp1[member] === ondeck));
+                sp1.ledSet(led, sp1[member] === ondeck);
             }
         });
     };
-    var switchToDeck1 = switchToDeckN('currentLeftDeck', 1, 'selectDeck3', false);
-    var switchToDeck3 = switchToDeckN('currentLeftDeck', 3, 'selectDeck3', true);
-    var switchToDeck2 = switchToDeckN('currentRightDeck', 2, 'selectDeck4', false);
-    var switchToDeck4 = switchToDeckN('currentRightDeck', 4, 'selectDeck4', true);
+    var momentaryDeckSwitch = function(options) {
+        var ondeck = options.ondeck;
+        var offdeck = options.offdeck;
+        var led = options.led;
+        var member = options.member;
+        return midiValueHandler(function(value) {
+            if (value === 0x7F) {
+                sp1[member] = ondeck;
+                sp1.ledSet(led, true);
+            } else {
+                sp1[member] = offdeck;
+                sp1.ledSet(led, false);
+            }
+        });
+    };
 
-    midi[ret._physGet(false, 'selectDeck3')] = switchToDeck3;
-    // shift+deck3 goes back to deck1
-    midi[ret._physGet(true, 'selectDeck3')] = switchToDeck1;
-    midi[ret._physGet(false, 'selectDeck4')] = switchToDeck4;
-    midi[ret._physGet(true, 'selectDeck4')] = switchToDeck2;
+    // while deck3 is pressed, left side is deck3
+    midi[ret._physGet(false, 'selectDeck3')] = momentaryDeckSwitch(
+        { ondeck: sp1.deck3, offdeck: sp1.deck1,
+          led: ret._physGet(false, 'selectDeck3'),
+          member: 'currentLeftDeck'
+        });
+    // shift+deck3 toggles deck3/deck1
+    midi[ret._physGet(true, 'selectDeck3')] = toggleDecks(
+        { ondeck: sp1.deck3, offdeck: sp1.deck1,
+          led: ret._physGet(false, 'selectDeck3'),
+          member: 'currentLeftDeck'
+        });
+
+    // same for right side
+    midi[ret._physGet(false, 'selectDeck4')] = momentaryDeckSwitch(
+        { ondeck: sp1.deck4, offdeck: sp1.deck2,
+          led: ret._physGet(false, 'selectDeck4'),
+          member: 'currentRightDeck'
+        });
+    midi[ret._physGet(true, 'selectDeck4')] = toggleDecks(
+        { ondeck: sp1.deck4, offdeck: sp1.deck2,
+          led: ret._physGet(false, 'selectDeck4'),
+          member: 'currentRightDeck'
+        });
 
     var loadDeckN = function(deck) {
 

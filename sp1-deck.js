@@ -106,7 +106,7 @@ var makeDeck = function(deckNum) {
         ret.padMode[ret.currentPadMode].setLeds();
     };
     ret.setPadMode = function(newmode) {
-        dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
+        //dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
         ret.currentPadMode = newmode;
         ret.refreshPadLeds();
     }
@@ -191,7 +191,6 @@ var makeDeck = function(deckNum) {
     };
     // OK to pass nothing for 'eighths'; setLeds() will get it itself if needed.
     roll.setLeds = function(eighths) {
-        dbglog('setting roll LED on');
         sp1.ledOn(ret._mode('roll'));
         // turn on the LED corresponding to the beat loop size we are at
         if (typeof eighths === 'undefined') {
