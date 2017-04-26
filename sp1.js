@@ -1059,16 +1059,52 @@ var makeDeck = function(deckNum) {
         }
     });
 
-    var makePad = function(hactivate, physKey) {
+    var hotcueBehavior = '_gotoandplay';
+
+    var makePad = function(hcdo, physKey) {
         midi[physKey] = midiValueHandler(function(value) {
-            mixxxButton(value, ret.channel, hactivate);
+            mixxxButton(value, ret.channel, hcdo + hotcueBehavior);
         });
     };
 
     for (var i = 1; i <= 8; ++i) {
         // NOTE: gotoandplay is used to avoid accidentally setting cue points.
-        makePad('hotcue_' + i + '_gotoandplay', ret._msk('hotcue', false, 'pad' + i));
+        makePad('hotcue_' + i, ret._msk('hotcue', false, 'pad' + i));
     }
+
+    var turnOffHotcueOptions = function() {
+        sp1.ledOff(ret._msk('hotcue', true, 'pad1'));
+        sp1.ledOff(ret._msk('hotcue', true, 'pad4'));
+        sp1.ledOff(ret._msk('hotcue', true, 'pad8'));
+    };
+
+    // while in hotcue mode, shift+pad1 sets mode to gotoandplay
+    midi[ret._msk('hotcue', true, 'pad1')] = midiValueHandler(function(value) {
+        if (value == 0x7F) {
+            hotcueBehavior = '_gotoandplay';
+            turnOffHotcueOptions();
+            sp1.ledOn(ret._msk('hotcue', true, 'pad1'));
+            hotcues.setLeds();
+        }
+    });
+    // ... while shift+pad4 sets behavior to 'activate'
+    midi[ret._msk('hotcue', true, 'pad4')] = midiValueHandler(function(value) {
+        if (value == 0x7F) {
+            hotcueBehavior = '_activate';
+            turnOffHotcueOptions();
+            sp1.ledOn(ret._msk('hotcue', true, 'pad4'));
+            hotcues.setLeds();
+        }
+    });
+    // ... and shift+pad8 sets behavior to 'clear'
+    midi[ret._msk('hotcue', true, 'pad8')] = midiValueHandler(function(value) {
+        if (value == 0x7F) {
+            hotcueBehavior = '_clear';
+            turnOffHotcueOptions();
+            sp1.ledOn(ret._msk('hotcue', true, 'pad8'));
+            hotcues.setLeds();
+        }
+    });
 
     ret.padMode['hotcues'] = hotcues;
 
