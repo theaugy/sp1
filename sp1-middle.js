@@ -85,6 +85,24 @@ var makeMiddle = function() {
     sp1.currentLeftDeck  = sp1.deck1;
     sp1.currentRightDeck = sp1.deck2;
 
+    midi[ret._physGet(false, 'volume')] = midiValueHandler(function(value) {
+        // whichever deck is NOT currently active, adjust its volume
+        if (sp1.getLeftDeck().deck === 1) {
+            mixxxSet('[Channel3]', 'volume', valueFromMidi(value));
+        } else {
+            mixxxSet('[Channel1]', 'volume', valueFromMidi(value));
+        }
+    });
+    // shift + volume to access the not-active right deck
+    midi[ret._physGet(true, 'volume')] = midiValueHandler(function(value) {
+        // whichever deck is NOT currently active, adjust its volume
+        if (sp1.getRightDeck().deck === 2) {
+            mixxxSet('[Channel4]', 'volume', valueFromMidi(value));
+        } else {
+            mixxxSet('[Channel2]', 'volume', valueFromMidi(value));
+        }
+    });
+
     ret.midi = midi;
 
     return ret;

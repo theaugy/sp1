@@ -806,8 +806,7 @@ middle_shifton_rotary:                 [  0xB6  ,  0x64  ,  {  led:  false,  typ
 middle_shifton_rotaryBtn:              [  0x96  ,  0x42  ,  {  led:  false,  type:  "button"  }  ],
 middle_shifton_selectDeck3:            [  0x92  ,  0x73  ,  {  led:  false,  type:  "button"  }  ],
 middle_shifton_selectDeck4:            [  0x93  ,  0x73  ,  {  led:  false,  type:  "button"  }  ],
-middle_shifton_volume:                 [  0xB6  ,  0x69  ,  {  led:  false,  type:  "button"  }  ],
-middle_shifton_volume_detail:          [  0xB6  ,  0x69  ,  {  led:  false,  type:  "detail"  }  ],
+middle_shifton_volume:                 [  0xB6  ,  0x69  ,  {  led:  false,  type:  "knob"  }  ],
     last: true
 };
 // End of sp1-midiMap.js
@@ -1324,6 +1323,24 @@ var makeMiddle = function() {
     sp1.ledSet(ret._physGet(false, 'selectDeck4'), false);
     sp1.currentLeftDeck  = sp1.deck1;
     sp1.currentRightDeck = sp1.deck2;
+
+    midi[ret._physGet(false, 'volume')] = midiValueHandler(function(value) {
+        // whichever deck is NOT currently active, adjust its volume
+        if (sp1.getLeftDeck().deck === 1) {
+            mixxxSet('[Channel3]', 'volume', valueFromMidi(value));
+        } else {
+            mixxxSet('[Channel1]', 'volume', valueFromMidi(value));
+        }
+    });
+    // shift + volume to access the not-active right deck
+    midi[ret._physGet(true, 'volume')] = midiValueHandler(function(value) {
+        // whichever deck is NOT currently active, adjust its volume
+        if (sp1.getRightDeck().deck === 2) {
+            mixxxSet('[Channel4]', 'volume', valueFromMidi(value));
+        } else {
+            mixxxSet('[Channel2]', 'volume', valueFromMidi(value));
+        }
+    });
 
     ret.midi = midi;
 

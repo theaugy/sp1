@@ -799,7 +799,6 @@ middle_shifton_rotary:                 [  0xB6  ,  0x64  ,  {  led:  false,  typ
 middle_shifton_rotaryBtn:              [  0x96  ,  0x42  ,  {  led:  false,  type:  "button"  }  ],
 middle_shifton_selectDeck3:            [  0x92  ,  0x73  ,  {  led:  false,  type:  "button"  }  ],
 middle_shifton_selectDeck4:            [  0x93  ,  0x73  ,  {  led:  false,  type:  "button"  }  ],
-middle_shifton_volume:                 [  0xB6  ,  0x69  ,  {  led:  false,  type:  "button"  }  ],
-middle_shifton_volume_detail:          [  0xB6  ,  0x69  ,  {  led:  false,  type:  "detail"  }  ],
+middle_shifton_volume:                 [  0xB6  ,  0x69  ,  {  led:  false,  type:  "knob"  }  ],
     last: true
 };

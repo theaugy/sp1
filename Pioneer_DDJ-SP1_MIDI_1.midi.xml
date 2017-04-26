@@ -802,7 +802,6 @@
 <!--  middle_shifton_selectDeck3:            -->  <control><group>master</group><key>sp1.dispatch</key><status>0x92</status><midino>0x73</midino><options><script-binding/></options></control>
 <!--  middle_shifton_selectDeck4:            -->  <control><group>master</group><key>sp1.dispatch</key><status>0x93</status><midino>0x73</midino><options><script-binding/></options></control>
 <!--  middle_shifton_volume:                 -->  <control><group>master</group><key>sp1.dispatch</key><status>0xB6</status><midino>0x69</midino><options><script-binding/></options></control>
-<!--  middle_shifton_volume_detail:          -->  <control><group>master</group><key>sp1.dispatch</key><status>0xB6</status><midino>0x69</midino><options><script-binding/></options></control>
 <!--  last:                                  -->  <control><group>master</group><key>sp1.dispatch</key><status></status><midino></midino><options><script-binding/></options></control>
 
         </controls>
