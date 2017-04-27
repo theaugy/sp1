@@ -101,6 +101,12 @@ var samplesToBeats = function(samples, bpm, rate) {
     return beats;
 };
 
+var beatsToSamples = function(beats, bpm, rate) {
+    var spm = rate * 60; // samples per minute
+    var spb = spm / bpm; // samples per beat
+    return 2 * spb * beats; // once again, comes out half what I expect
+};
+
 // most of the time, we only care about the value, since our design ensures that the
 // rest of the values are superfluous
 var midiValueHandler = function(f) {

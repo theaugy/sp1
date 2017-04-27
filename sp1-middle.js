@@ -64,14 +64,19 @@ var makeMiddle = function() {
                 sp1.ledSet(led, false);
                 sp1.fx.updateDeckLeds();
             }
+            options.andThen(value);
         });
     };
+
+    var selectDeck3Down = false;
+    var selectDeck4Down = false;
 
     // while deck3 is pressed, left side is deck3
     midi[ret._physGet(false, 'selectDeck3')] = momentaryDeckSwitch(
         { ondeck: sp1.deck3, offdeck: sp1.deck1,
           led: ret._physGet(false, 'selectDeck3'),
-          member: 'currentLeftDeck'
+          member: 'currentLeftDeck',
+          andThen: function(value) { selectDeck3Down = (value === 0x7F); }
         });
     // shift+deck3 toggles deck3/deck1
     midi[ret._physGet(true, 'selectDeck3')] = toggleDecks(
@@ -84,7 +89,8 @@ var makeMiddle = function() {
     midi[ret._physGet(false, 'selectDeck4')] = momentaryDeckSwitch(
         { ondeck: sp1.deck4, offdeck: sp1.deck2,
           led: ret._physGet(false, 'selectDeck4'),
-          member: 'currentRightDeck'
+          member: 'currentRightDeck',
+          andThen: function(value) { selectDeck4Down = (value === 0x7F); }
         });
     midi[ret._physGet(true, 'selectDeck4')] = toggleDecks(
         { ondeck: sp1.deck4, offdeck: sp1.deck2,
@@ -116,6 +122,14 @@ var makeMiddle = function() {
         //perRightTick(ticks, function() { mixxxButtonPress('[Library]', 'MoveDown'); });
         perLeftTick(ticks, function() { mixxxButtonPress('[Playlist]', 'SelectPrevTrack'); });
         perRightTick(ticks, function() { mixxxButtonPress('[Playlist]', 'SelectNextTrack'); });
+    });
+
+    // hold deck3+deck4+load/prepare to go into prepareMode
+    midi[ret._physGet(false, 'forward')] = midiValueHandler(function(value) {
+        if (value == 0x7F && selectDeck3Down && selectDeck4Down) {
+            sp1.prepMode = !sp1.prepMode;
+            dbglog("prepMode is now " + sp1.prepMode);
+        }
     });
 
     sp1.ledSet(ret._physGet(false, 'selectDeck3'), false);

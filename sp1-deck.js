@@ -50,6 +50,20 @@ var makeDeck = function(deckNum) {
 
     ret.tempoAdjust = function(value) {
         var ticks = ticksFromRotary(value);
+        if (sp1.prepMode) {
+            var mult = [ 1, 16, 16, 32, 64, 64, 64, 64 ];
+            var i = 0;
+            var adjust = function(x) {
+                var n = mult[i++];
+                for (var j = 0; j < n; ++j)
+                {
+                    mixxxButtonPress(ret.channel, x);
+                }
+            };
+            perLeftTick(ticks, function() { adjust('beats_adjust_slower'); });
+            perRightTick(ticks, function() { adjust('beats_adjust_faster'); });
+            return;
+        }
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_down'); });
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'rate_perm_up'); });
     };
@@ -77,11 +91,23 @@ var makeDeck = function(deckNum) {
     };
 
     var sync = midiValueHandler(function(value, physKey) {
+        if (sp1.prepMode) {
+            if (value == 0x7F) {
+                mixxxButtonPress(ret.channel, 'beats_translate_curpos');
+            }
+            return;
+        }
+
         mixxxButton(value, ret.channel, 'beatsync_tempo');
         sp1.ledSet(physKey, value);
     });
 
     var slip = midiValueHandler(function(value) {
+        if (sp1.prepMode) {
+            mixxxButtonPress(ret.channel, 'cue_gotoandstop');
+            return;
+        }
+
         mixxxLatch(value, ret.channel, 'slip_enabled');
         if (value == 0x7F) {
             sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
@@ -129,52 +155,32 @@ var makeDeck = function(deckNum) {
         }
     });
 
-    var hotcueBehavior = '_gotoandplay';
 
     var makePad = function(hcdo, physKey) {
         midi[physKey] = midiValueHandler(function(value) {
+            var hotcueBehavior = '_gotoandplay';
+            if (sp1.prepMode) {
+                hotcueBehavior = '_activate';
+            }
             mixxxButton(value, ret.channel, hcdo + hotcueBehavior);
+        });
+    };
+
+    var shiftPad = function(hcdo, physKey) {
+        midi[physKey] = midiValueHandler(function(value) {
+            if (sp1.prepMode) {
+                mixxxButton(value, ret.channel, hcdo + '_clear');
+            }
+            // no behavior currently if not in prep mode. Maybe could access
+            // extra hotcues?
         });
     };
 
     for (var i = 1; i <= 8; ++i) {
         // NOTE: gotoandplay is used to avoid accidentally setting cue points.
         makePad('hotcue_' + i, ret._msk('hotcue', false, 'pad' + i));
+        shiftPad('hotcue_' + i, ret._msk('hotcue', true, 'pad' + i));
     }
-
-    var turnOffHotcueOptions = function() {
-        sp1.ledOff(ret._msk('hotcue', true, 'pad1'));
-        sp1.ledOff(ret._msk('hotcue', true, 'pad4'));
-        sp1.ledOff(ret._msk('hotcue', true, 'pad8'));
-    };
-
-    // while in hotcue mode, shift+pad1 sets mode to gotoandplay
-    midi[ret._msk('hotcue', true, 'pad1')] = midiValueHandler(function(value) {
-        if (value == 0x7F) {
-            hotcueBehavior = '_gotoandplay';
-            turnOffHotcueOptions();
-            sp1.ledOn(ret._msk('hotcue', true, 'pad1'));
-            hotcues.setLeds();
-        }
-    });
-    // ... while shift+pad4 sets behavior to 'activate'
-    midi[ret._msk('hotcue', true, 'pad4')] = midiValueHandler(function(value) {
-        if (value == 0x7F) {
-            hotcueBehavior = '_activate';
-            turnOffHotcueOptions();
-            sp1.ledOn(ret._msk('hotcue', true, 'pad4'));
-            hotcues.setLeds();
-        }
-    });
-    // ... and shift+pad8 sets behavior to 'clear'
-    midi[ret._msk('hotcue', true, 'pad8')] = midiValueHandler(function(value) {
-        if (value == 0x7F) {
-            hotcueBehavior = '_clear';
-            turnOffHotcueOptions();
-            sp1.ledOn(ret._msk('hotcue', true, 'pad8'));
-            hotcues.setLeds();
-        }
-    });
 
     ret.padMode['hotcues'] = hotcues;
 
@@ -252,8 +258,42 @@ var makeDeck = function(deckNum) {
         beatlength *= 2;
     }
 
+    // moves a whole beat at a time (at least)
+    var prepModeAutoloop = function(ticks) {
+        var samples = beatsToSamples(1, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+        var trackSamples = mixxxGet(ret.channel, 'track_samples');
+        var tmp = {};
+        tmp.pos = mixxxGet(ret.channel, 'playposition');
+        var posDiff = samples / trackSamples;
+        var muls = [ 1, 1, 2, 4, 8, 16, 16, 16, 16, 16, 16 ];
+        var i = 0;
+        var nextPosDiff = function() {
+            return posDiff * muls[i++];
+        };
+        //dbglog(ticks + ' * ' + posDiff + ' from ' + tmp.pos + ' / ' + trackSamples + ' (' + samples + ' / beat)');
+        perRightTick(ticks, function() { tmp.pos += nextPosDiff(); });
+        perLeftTick(ticks, function() { tmp.pos -= nextPosDiff(); });
+        //dbglog('Final position: ' + tmp.pos);
+        mixxxSet(ret.channel, 'playposition', tmp.pos);
+    };
+
+    // very fine-grained selection
+    var shiftprepModeAutoloop = function(ticks) {
+        var tmp = {};
+        tmp.pos = mixxxGet(ret.channel, 'playposition');
+        var posDiff = 1 / (1048576/2);
+        perRightTick(ticks, function() { tmp.pos += posDiff; posDiff *= 2; });
+        perLeftTick(ticks, function() { tmp.pos -= posDiff; posDiff *= 2; });
+        mixxxSet(ret.channel, 'playposition', tmp.pos);
+    };
+
     midi[ret._msk(false, false, 'autoloop')] = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
+        if (sp1.prepMode) {
+            prepModeAutoloop(ticks);
+            return;
+        }
+
         var loopLength = roll.getLoopEighths();
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'loop_double'); loopLength *= 2; });
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'loop_halve'); loopLength /= 2; });
@@ -268,8 +308,23 @@ var makeDeck = function(deckNum) {
         }
     });
 
+    midi[ret._msk(false, true, 'autoloop')] = midiValueHandler(function(value) {
+        var ticks = ticksFromRotary(value);
+        if (sp1.prepMode) {
+            shiftprepModeAutoloop(ticks);
+            return;
+        }
+    });
+
     // This doesn't seem to work with the beat loop controls? weird.
     midi[ret._msk(false, false, 'autoloopBtn')] = midiValueHandler(function(value) {
+        if (sp1.prepMode) {
+            if (value == 0x7F) {
+                mixxxButtonPress(ret.channel, 'cue_set');
+            }
+            mixxxButton(value, ret.channel, 'cue_cdj');
+            return;
+        }
         mixxxButtonPress(ret.channel, 'reloop_exit');
     });
 

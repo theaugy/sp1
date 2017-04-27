@@ -62,6 +62,7 @@ sp1.init = function(id, debugging) {
     try
     {
         sp1.midi = {};
+        sp1.prepMode = false;
         sp1.getLeftDeck = function() {
             return this.currentLeftDeck;
         };
