@@ -917,8 +917,8 @@ var samplesToBeats = function(samples, bpm, rate) {
 // most of the time, we only care about the value, since our design ensures that the
 // rest of the values are superfluous
 var midiValueHandler = function(f) {
-    return function(channel, control, value, status, group) {
-        return f(value);
+    return function(channel, control, value, status, group, physKey) {
+        return f(value, physKey);
     };
 };
 
@@ -1006,8 +1006,9 @@ var makeDeck = function(deckNum) {
         if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
     };
 
-    var sync = midiValueHandler(function(value) {
+    var sync = midiValueHandler(function(value, physKey) {
         mixxxButton(value, ret.channel, 'beatsync_tempo');
+        sp1.ledSet(physKey, value);
     });
 
     var slip = midiValueHandler(function(value) {
@@ -1647,7 +1648,9 @@ sp1.buildDispatchMap = function() {
             if (handler) {
                 sp1.handlers.push(physKey);
                 return function (args) {
-                    handler.apply(This, arguments);
+                    var fargs = Array.prototype.slice.call(arguments);
+                    fargs.push(physKey);
+                    handler.apply(This, fargs);
                 }
             } else {
                 return undefined;

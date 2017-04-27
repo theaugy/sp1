@@ -138,7 +138,9 @@ sp1.buildDispatchMap = function() {
             if (handler) {
                 sp1.handlers.push(physKey);
                 return function (args) {
-                    handler.apply(This, arguments);
+                    var fargs = Array.prototype.slice.call(arguments);
+                    fargs.push(physKey);
+                    handler.apply(This, fargs);
                 }
             } else {
                 return undefined;

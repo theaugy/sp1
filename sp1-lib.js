@@ -104,8 +104,8 @@ var samplesToBeats = function(samples, bpm, rate) {
 // most of the time, we only care about the value, since our design ensures that the
 // rest of the values are superfluous
 var midiValueHandler = function(f) {
-    return function(channel, control, value, status, group) {
-        return f(value);
+    return function(channel, control, value, status, group, physKey) {
+        return f(value, physKey);
     };
 };
 

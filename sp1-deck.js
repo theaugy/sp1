@@ -76,8 +76,9 @@ var makeDeck = function(deckNum) {
         if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
     };
 
-    var sync = midiValueHandler(function(value) {
+    var sync = midiValueHandler(function(value, physKey) {
         mixxxButton(value, ret.channel, 'beatsync_tempo');
+        sp1.ledSet(physKey, value);
     });
 
     var slip = midiValueHandler(function(value) {
