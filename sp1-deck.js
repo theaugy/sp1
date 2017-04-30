@@ -147,6 +147,18 @@ var makeDeck = function(deckNum) {
         ret.refreshPadLeds();
     }
 
+    var getLoopEighths = function() {
+        // var currentLoopLength = mixxxGet(ret.channel, 'beatloop_size'); // TODO in mixxx 2.1
+        var currentLoopStart = mixxxGet(ret.channel, 'loop_start_position');
+        var currentLoopEnd = mixxxGet(ret.channel, 'loop_end_position');
+        if (currentLoopEnd <= currentLoopStart) return 0;
+        var currentLoopLength = currentLoopEnd - currentLoopStart;
+        // now we need to do some math to figure out how long the loop currently is.
+        var beats = samplesToBeats(currentLoopLength, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+        var eighths = beats * 8; // our 8 pads go from 1/8th to 16 beats
+        return eighths;
+    };
+
     var hotcues = {}; // pad mode object
     hotcues.setLeds = function() {
         // NOTE: not doing anything with the shift-pads
@@ -183,9 +195,26 @@ var makeDeck = function(deckNum) {
             if (sp1.prepMode) {
                 mixxxButton(value, ret.channel, hcdo + '_clear');
                 hotcues.setLeds();
+                return;
             }
-            // no behavior currently if not in prep mode. Maybe could access
-            // extra hotcues?
+            // goto hotcue and begin 4 beat loop
+            if (value == 0x7F) {
+                var pos = mixxxGet(ret.channel, hcdo + '_position'); // in samples
+                if (pos == -1)
+                {
+                    dbglog(hcdo + ' is not set');
+                    return;
+                }
+                var trackSamples = mixxxGet(ret.channel, 'track_samples');
+                var samples = beatsToSamples(4, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+                mixxxSet(ret.channel, 'playposition', pos / trackSamples);
+                mixxxSet(ret.channel, 'loop_start_position', pos);
+                mixxxSet(ret.channel, 'loop_end_position', pos + samples);
+                if (!mixxxGet(ret.channel, 'loop_enabled'))
+                {
+                    mixxxButtonPress(ret.channel, 'reloop_exit');
+                }
+            }
         });
     };
 
@@ -198,23 +227,12 @@ var makeDeck = function(deckNum) {
     ret.padMode['hotcues'] = hotcues;
 
     var roll = {};
-    roll.getLoopEighths = function() {
-        // var currentLoopLength = mixxxGet(ret.channel, 'beatloop_size'); // TODO in mixxx 2.1
-        var currentLoopStart = mixxxGet(ret.channel, 'loop_start_position');
-        var currentLoopEnd = mixxxGet(ret.channel, 'loop_end_position');
-        if (currentLoopEnd <= currentLoopStart) return 0;
-        var currentLoopLength = currentLoopEnd - currentLoopStart;
-        // now we need to do some math to figure out how long the loop currently is.
-        var beats = samplesToBeats(currentLoopLength, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
-        var eighths = beats * 8; // our 8 pads go from 1/8th to 16 beats
-        return eighths;
-    };
     // OK to pass nothing for 'eighths'; setLeds() will get it itself if needed.
     roll.setLeds = function(eighths) {
         sp1.ledOn(ret._mode('roll'));
         // turn on the LED corresponding to the beat loop size we are at
         if (typeof eighths === 'undefined') {
-            eighths = Math.round(roll.getLoopEighths());
+            eighths = Math.round(getLoopEighths());
         }
         if (eighths > 0) {
             if (eighths >= 1 && eighths <= (16 * 8)) {
@@ -251,7 +269,7 @@ var makeDeck = function(deckNum) {
     makePad = function(lengthInBeats, setloop, physKey) {
         midi[physKey] = midiValueHandler(function(value) {
             if (value != 0x7F) return;
-            if (Math.round(roll.getLoopEighths()) == Math.round(lengthInBeats*8) && mixxxGet(ret.channel, 'loop_enabled')) {
+            if (Math.round(getLoopEighths()) == Math.round(lengthInBeats*8) && mixxxGet(ret.channel, 'loop_enabled')) {
                 // loop is already set to this value and enabled. Disable the loop.
                 mixxxButtonPress(ret.channel, setloop);
                 // leave the LED on.
@@ -288,7 +306,7 @@ var makeDeck = function(deckNum) {
             return;
         }
 
-        var loopLength = roll.getLoopEighths();
+        var loopLength = getLoopEighths();
         perRightTick(ticks, function() { mixxxButtonPress(ret.channel, 'loop_double'); loopLength *= 2; });
         perLeftTick(ticks, function() { mixxxButtonPress(ret.channel, 'loop_halve'); loopLength /= 2; });
         if (ret.currentPadMode === 'roll') {
@@ -361,7 +379,7 @@ var makeDeck = function(deckNum) {
         }
         // For 2.1+:
         //mixxxButton(value, ret.channel, 'loop_move_backward_beatloop_size');
-        var key = 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_backward';
+        var key = 'loop_move_' + Math.round(getLoopEighths()) / 8 + '_backward';
         mixxxButton(value, ret.channel, key);
     });
     midi[ret._msk('hotcue', false, 'paramLeft')] = midi[ret._msk('roll', false, 'paramLeft')];
@@ -372,20 +390,20 @@ var makeDeck = function(deckNum) {
             moveTickBeats(4);
             return;
         }
-        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(getLoopEighths()) / 8 + '_forward');
     });
     midi[ret._msk('hotcue', false, 'paramRight')] = midi[ret._msk('roll', false, 'paramRight')];
 
     // shift+paramleft/right jumps you 8x further
     midi[ret._msk('roll', true, 'paramLeft')] = midiValueHandler(function(value) {
-        var key = 'loop_move_' + Math.round(roll.getLoopEighths()) + '_backward';
+        var key = 'loop_move_' + Math.round(getLoopEighths()) + '_backward';
         mixxxButton(value, ret.channel, key);
     });
     midi[ret._msk('hotcue', true, 'paramLeft')] = midi[ret._msk('roll', true, 'paramLeft')];
 
     // shift+paramright
     midi[ret._msk('roll', true, 'paramRight')] = midiValueHandler(function(value) {
-        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) + '_forward');
+        mixxxButton(value, ret.channel, 'loop_move_' + Math.round(getLoopEighths()) + '_forward');
     });
     midi[ret._msk('hotcue', true, 'paramRight')] = midi[ret._msk('roll', true, 'paramRight')];
 
