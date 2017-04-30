@@ -112,6 +112,9 @@ var makeFx = function() {
     midi[ret._physGet(true, 'fx2rotary')] = midiValueHandler(function(value) {
         sp1.getRightDeck().pitchAdjust(value);
     });
+    midi[ret._physGet(false, 'fx1rotaryLatch')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().tapTempo(value);
+    });
 
     midi[ret._physGet(false, 'fx1rotaryBtn')] = midiValueHandler(function(value) {
         sp1.getLeftDeck().tempoReset(value);
@@ -124,6 +127,9 @@ var makeFx = function() {
     });
     midi[ret._physGet(true, 'fx2rotaryBtn')] = midiValueHandler(function(value) {
         sp1.getRightDeck().pitchReset(value);
+    });
+    midi[ret._physGet(false, 'fx2rotaryLatch')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().tapTempo(value);
     });
 
     return ret;

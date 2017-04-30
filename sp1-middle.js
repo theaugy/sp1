@@ -102,6 +102,7 @@ var makeMiddle = function() {
 
         midi[ret._physGet(false, 'load' + deck)] = midiValueHandler(function(value) {
             mixxxButtonPress('[Channel' + deck + ']', 'LoadSelectedTrack');
+            sp1['deck' + deck].trackLoaded();
         });
         // shift+load stops the deck
         midi[ret._physGet(true, 'load' + deck)] = midiValueHandler(function(value) {

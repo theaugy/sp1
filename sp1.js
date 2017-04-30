@@ -1026,6 +1026,12 @@ var makeDeck = function(deckNum) {
         if (value == 0x7F) mixxxSet(ret.channel, 'rate', .5);
     };
 
+    ret.tapTempo = function(value) {
+        if (value == 0x7F) {
+            mixxxButtonPress(ret.channel, 'bpm_tap');
+        }
+    };
+
     var sync = midiValueHandler(function(value, physKey) {
         if (sp1.prepMode) {
             if (value == 0x7F) {
@@ -1068,6 +1074,9 @@ var makeDeck = function(deckNum) {
         sp1.ledOff(ret._mode('sampler'));
         ret.padMode[ret.currentPadMode].setLeds();
     };
+    ret.trackLoaded = function() {
+        ret.refreshPadLeds();
+    };
     ret.setPadMode = function(newmode) {
         //dbglog('setting pad mode from ' + ret.currentPadMode + ' to ' + newmode);
         ret.currentPadMode = newmode;
@@ -1099,6 +1108,9 @@ var makeDeck = function(deckNum) {
                 hotcueBehavior = '_activate';
             }
             mixxxButton(value, ret.channel, hcdo + hotcueBehavior);
+            if (sp1.prepMode) {
+                hotcues.setLeds();
+            }
         });
     };
 
@@ -1106,6 +1118,7 @@ var makeDeck = function(deckNum) {
         midi[physKey] = midiValueHandler(function(value) {
             if (sp1.prepMode) {
                 mixxxButton(value, ret.channel, hcdo + '_clear');
+                hotcues.setLeds();
             }
             // no behavior currently if not in prep mode. Maybe could access
             // extra hotcues?
@@ -1194,25 +1207,6 @@ var makeDeck = function(deckNum) {
         beatlength *= 2;
     }
 
-    // moves a whole beat at a time (at least)
-    var prepModeAutoloop = function(ticks) {
-        var samples = beatsToSamples(1, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
-        var trackSamples = mixxxGet(ret.channel, 'track_samples');
-        var tmp = {};
-        tmp.pos = mixxxGet(ret.channel, 'playposition');
-        var posDiff = samples / trackSamples;
-        var muls = [ 1, 1, 2, 4, 8, 16, 16, 16, 16, 16, 16 ];
-        var i = 0;
-        var nextPosDiff = function() {
-            return posDiff * muls[i++];
-        };
-        //dbglog(ticks + ' * ' + posDiff + ' from ' + tmp.pos + ' / ' + trackSamples + ' (' + samples + ' / beat)');
-        perRightTick(ticks, function() { tmp.pos += nextPosDiff(); });
-        perLeftTick(ticks, function() { tmp.pos -= nextPosDiff(); });
-        //dbglog('Final position: ' + tmp.pos);
-        mixxxSet(ret.channel, 'playposition', tmp.pos);
-    };
-
     // very fine-grained selection
     var shiftprepModeAutoloop = function(ticks) {
         var tmp = {};
@@ -1226,7 +1220,7 @@ var makeDeck = function(deckNum) {
     midi[ret._msk(false, false, 'autoloop')] = midiValueHandler(function(value) {
         var ticks = ticksFromRotary(value);
         if (sp1.prepMode) {
-            prepModeAutoloop(ticks);
+            moveTickBeats(ticks);
             return;
         }
 
@@ -1264,8 +1258,43 @@ var makeDeck = function(deckNum) {
         mixxxButtonPress(ret.channel, 'reloop_exit');
     });
 
+    // quantized set cue
+    midi[ret._msk(false, true, 'autoloopBtn')] = midiValueHandler(function(value) {
+        if (sp1.prepMode) {
+            if (value == 0x7F) {
+                var restore = mixxxGet(ret.channel, 'quantize');
+                mixxxSet(ret.channel, 'quantize', true);
+                mixxxButtonPress(ret.channel, 'cue_set');
+                mixxxSet(ret.channel, 'quantize', restore);
+            }
+        };
+    });
+
+    // moves a whole beat at a time (at least)
+    var moveTickBeats = function(ticks) {
+        var samples = beatsToSamples(1, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+        var trackSamples = mixxxGet(ret.channel, 'track_samples');
+        var tmp = {};
+        tmp.pos = mixxxGet(ret.channel, 'playposition');
+        var posDiff = samples / trackSamples;
+        var muls = [ 1, 1, 2, 4, 8, 16, 16, 16, 16, 16, 16 ];
+        var i = 0;
+        var nextPosDiff = function() {
+            return posDiff * muls[i++];
+        };
+        //dbglog(ticks + ' * ' + posDiff + ' from ' + tmp.pos + ' / ' + trackSamples + ' (' + samples + ' / beat)');
+        perRightTick(ticks, function() { tmp.pos += nextPosDiff(); });
+        perLeftTick(ticks, function() { tmp.pos -= nextPosDiff(); });
+        //dbglog('Final position: ' + tmp.pos);
+        mixxxSet(ret.channel, 'playposition', tmp.pos);
+    };
+
     // paramleft
     midi[ret._msk('roll', false, 'paramLeft')] = midiValueHandler(function(value) {
+        if (sp1.prepMode) {
+            moveTickBeats(-4);
+            return;
+        }
         // For 2.1+:
         //mixxxButton(value, ret.channel, 'loop_move_backward_beatloop_size');
         var key = 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_backward';
@@ -1275,6 +1304,10 @@ var makeDeck = function(deckNum) {
 
     // paramright
     midi[ret._msk('roll', false, 'paramRight')] = midiValueHandler(function(value) {
+        if (sp1.prepMode) {
+            moveTickBeats(4);
+            return;
+        }
         mixxxButton(value, ret.channel, 'loop_move_' + Math.round(roll.getLoopEighths()) / 8 + '_forward');
     });
     midi[ret._msk('hotcue', false, 'paramRight')] = midi[ret._msk('roll', false, 'paramRight')];
@@ -1402,6 +1435,7 @@ var makeMiddle = function() {
 
         midi[ret._physGet(false, 'load' + deck)] = midiValueHandler(function(value) {
             mixxxButtonPress('[Channel' + deck + ']', 'LoadSelectedTrack');
+            sp1['deck' + deck].trackLoaded();
         });
         // shift+load stops the deck
         midi[ret._physGet(true, 'load' + deck)] = midiValueHandler(function(value) {
@@ -1576,6 +1610,9 @@ var makeFx = function() {
     midi[ret._physGet(true, 'fx2rotary')] = midiValueHandler(function(value) {
         sp1.getRightDeck().pitchAdjust(value);
     });
+    midi[ret._physGet(false, 'fx1rotaryLatch')] = midiValueHandler(function(value) {
+        sp1.getLeftDeck().tapTempo(value);
+    });
 
     midi[ret._physGet(false, 'fx1rotaryBtn')] = midiValueHandler(function(value) {
         sp1.getLeftDeck().tempoReset(value);
@@ -1588,6 +1625,9 @@ var makeFx = function() {
     });
     midi[ret._physGet(true, 'fx2rotaryBtn')] = midiValueHandler(function(value) {
         sp1.getRightDeck().pitchReset(value);
+    });
+    midi[ret._physGet(false, 'fx2rotaryLatch')] = midiValueHandler(function(value) {
+        sp1.getRightDeck().tapTempo(value);
     });
 
     return ret;
@@ -1726,6 +1766,7 @@ sp1.buildDispatchMap = function() {
                 return function (args) {
                     var fargs = Array.prototype.slice.call(arguments);
                     fargs.push(physKey);
+                    //dbglog(physKey + ' : ' + handler);
                     handler.apply(This, fargs);
                 }
             } else {
@@ -1754,6 +1795,7 @@ sp1.dispatch = function(channel, control, value, status, group) {
     }
     var f = sp1.dispatchMap[status][control];
     if (f) {
+        //dbglog(status + ' ' + control + ' -> ' + f);
         f.apply(null, arguments);
     } else {
         //script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");

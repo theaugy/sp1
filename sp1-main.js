@@ -141,6 +141,7 @@ sp1.buildDispatchMap = function() {
                 return function (args) {
                     var fargs = Array.prototype.slice.call(arguments);
                     fargs.push(physKey);
+                    //dbglog(physKey + ' : ' + handler);
                     handler.apply(This, fargs);
                 }
             } else {
@@ -169,6 +170,7 @@ sp1.dispatch = function(channel, control, value, status, group) {
     }
     var f = sp1.dispatchMap[status][control];
     if (f) {
+        //dbglog(status + ' ' + control + ' -> ' + f);
         f.apply(null, arguments);
     } else {
         //script.midiDebug(channel, control, value, status, group + ": Nothing in dispatch map");
