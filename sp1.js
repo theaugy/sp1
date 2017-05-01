@@ -964,6 +964,15 @@ var makeDeck = function(deckNum) {
         }
         return ret._physGet({ mode: m, shift: s, key: k });
     };
+    ret.beatsToSamples = function(beats) {
+        return beatsToSamples(beats, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+    };
+    ret.samplesNormalized = function(samples) {
+        return samples / mixxxGet(ret.channel, 'track_samples');
+    };
+    ret.normalizedToSamples = function(norm) {
+        return norm * mixxxGet(ret.channel, 'track_samples');
+    };
 
     // called by fx
     ret.deckFilterKnob = function(value) {
@@ -1141,9 +1150,8 @@ var makeDeck = function(deckNum) {
                     dbglog(hcdo + ' is not set');
                     return;
                 }
-                var trackSamples = mixxxGet(ret.channel, 'track_samples');
-                var samples = beatsToSamples(4, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
-                mixxxSet(ret.channel, 'playposition', pos / trackSamples);
+                var samples = ret.beatsToSamples(4);
+                mixxxSet(ret.channel, 'playposition', ret.samplesNormalized(pos));
                 mixxxSet(ret.channel, 'loop_start_position', pos);
                 mixxxSet(ret.channel, 'loop_end_position', pos + samples);
                 if (!mixxxGet(ret.channel, 'loop_enabled'))
@@ -1225,6 +1233,95 @@ var makeDeck = function(deckNum) {
         beatlength *= 2;
     }
 
+    // emulates the behavior of Serato's slicer
+    var slicer = {};
+    ret.padMode['slicer'] = slicer;
+    slicer.beats = 0;
+    slicer.pos = 0;
+    slicer.padstack = [];
+    slicer.setLeds = function() {
+        for (var i = 1; i <= 8; ++i) {
+            sp1.ledSet(ret._msk('slicer', false, 'pad' + i), slicer.beats === (1/4) * Math.pow(2, i - 1));
+        }
+        sp1.ledOn(ret._mode('slicer'));
+    };
+
+    makePad = function(pad, physKey, shiftPhysKey) {
+        midi[physKey] = midiValueHandler(function(value) {
+            if (value == 0x7F) {
+                if (slicer.beats === 0) {
+                    // we're setting the number of beats
+                    slicer.beats = (1/4) * Math.pow(2, pad - 1);
+                    slicer.pos = mixxxGet(ret.channel, 'playposition');
+                    sp1.ledOn(physKey);
+                    return;
+                }
+                var slicerLength = ret.beatsToSamples(slicer.beats) / 8; // 1/8th per pad
+                var offset = slicerLength * (pad - 1);
+                var offsetNormalized = ret.samplesNormalized(offset);
+                mixxxSet(ret.channel, 'slip_enabled', true);
+                mixxxSet(ret.channel, 'playposition', slicer.pos + offsetNormalized);
+                sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
+                dbglog("playposition " + slicer.pos + ' over ' + slicer.beats + ' beats, jumping to ' + pad + ' and position is now ' + mixxxGet(ret.channel, 'playposition'));
+                if (mixxxGet(ret.channel, 'loop_enabled') == true) {
+                    mixxxButtonPress(ret.channel, 'reloop_exit');
+                }
+                mixxxSet(ret.channel, 'loop_start_position', ret.normalizedToSamples(slicer.pos + offsetNormalized));
+                mixxxSet(ret.channel, 'loop_end_position', ret.normalizedToSamples(slicer.pos + offsetNormalized) + slicerLength);
+                mixxxButtonPress(ret.channel, 'reloop_exit');
+                slicer.padstack.push(pad);
+            } else if (slicer.beats !== 0) {
+                var i = slicer.padstack.indexOf(pad);
+                if (i >= 0)
+                    slicer.padstack.splice(i, 1);
+                else
+                    return;
+                if (slicer.padstack.length !== 0)
+                {
+                    dbglog(pad + " is not the last in " + JSON.stringify(slicer.padstack));
+                    return;
+                }
+                // turn off the loop
+                if (mixxxGet(ret.channel, 'loop_enabled') == true) {
+                    mixxxButtonPress(ret.channel, 'reloop_exit');
+                }
+                // disable slip
+                mixxxSet(ret.channel, 'slip_enabled', false);
+                sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
+            }
+        });
+        midi[shiftPhysKey] = midiValueHandler(function(value) {
+            if (value == 0x7F) {
+                slicer.beats = (1/4) * Math.pow(2, pad - 1);
+                if (slicer.pos === 0) {
+                    // only set position if there is no position already. The main
+                    // functionality of shift+pad is to adjust number of beats
+                    // without changing the position
+                    slicer.pos = mixxxGet(ret.channel, 'playposition');
+                }
+                slicer.setLeds();
+            }
+        });
+    };
+
+    for (var i = 1; i <= 8; ++i)
+    {
+        makePad(i, ret._msk('slicer', false, 'pad' + i), ret._msk('slicer', true, 'pad' + i));
+    }
+
+    midi[ret._mode('slicer')] = midiValueHandler(function(value) {
+        if (value == 0x7F) {
+            ret.setPadMode('slicer');
+        }
+    });
+    // shift + slicer to reset the slicer size
+    midi[ret._mode('manualloop')] = midiValueHandler(function(value) {
+        if (value == 0x7F) {
+            slicer.beats = 0;
+            slicer.setLeds();
+        }
+    });
+
     // very fine-grained selection
     var shiftprepModeAutoloop = function(ticks) {
         var tmp = {};
@@ -1290,17 +1387,15 @@ var makeDeck = function(deckNum) {
 
     // moves a whole beat at a time (at least)
     var moveTickBeats = function(ticks) {
-        var samples = beatsToSamples(1, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
-        var trackSamples = mixxxGet(ret.channel, 'track_samples');
+        var samples = ret.beatsToSamples(1);
         var tmp = {};
         tmp.pos = mixxxGet(ret.channel, 'playposition');
-        var posDiff = samples / trackSamples;
+        var posDiff = ret.samplesNormalized(samples);
         var muls = [ 1, 1, 2, 4, 8, 16, 16, 16, 16, 16, 16 ];
         var i = 0;
         var nextPosDiff = function() {
             return posDiff * muls[i++];
         };
-        //dbglog(ticks + ' * ' + posDiff + ' from ' + tmp.pos + ' / ' + trackSamples + ' (' + samples + ' / beat)');
         perRightTick(ticks, function() { tmp.pos += nextPosDiff(); });
         perLeftTick(ticks, function() { tmp.pos -= nextPosDiff(); });
         //dbglog('Final position: ' + tmp.pos);
