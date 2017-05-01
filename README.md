@@ -17,9 +17,9 @@ Mixxx 2.0.
 
 ## Installation
 
-    *   Download `Pioneer_DDJ-SP1_MIDI_1.midi.xml` and `sp1.js`
-    *   Copy both to the `.mixxx/controllers` directory (see [Installing a Preset from the Forum](https://www.mixxx.org/manual/latest/chapters/controlling_mixxx.html))
-    *   Plug in your SP1, start Mixxx, select the DDJ-SP1 under Controllers, and select
+   *   Download `Pioneer_DDJ-SP1_MIDI_1.midi.xml` and `sp1.js`
+   *   Copy both to the `.mixxx/controllers` directory (see [Installing a Preset from the Forum](https://www.mixxx.org/manual/latest/chapters/controlling_mixxx.html))
+   *   Plug in your SP1, start Mixxx, select the DDJ-SP1 under Controllers, and select
         the `Pioneer_DDJ-SP1_MIDI_1` preset
 
 You should now see your SP1 initialize (the LEDs should all light up from top to bottom). Have fun!
@@ -125,12 +125,12 @@ side.
 
 Some stuff I've been doing in the lab:
 
-    *   Some controls, like the per-deck filter (The third knob in `FX1`/`FX2`) and `SamplerVolume`,
+   *   Some controls, like the per-deck filter (The third knob in `FX1`/`FX2`) and `SamplerVolume`,
         change their target deck based on the active deck or the `Shift` button. You can, for instance,
         effectively filter out deck 1 and deck 3 simultaneously by rapidly pressing `SelectDeck3` while
         turning the 3rd `FX1` knob, or turn down deck 3 and deck 4 simultaneously by rapdily pressing
         `Shift` while lowering the volume slider.
-    *   `Shift+ParamLeft` and `Shift+ParamRight` can jump you pretty far around a track, which can
+   *   `Shift+ParamLeft` and `Shift+ParamRight` can jump you pretty far around a track, which can
         allow you to tease drops (with large loop sizes) or create glitchy renditions of melodies
         (with small loop sizes)
 
@@ -138,14 +138,14 @@ Some stuff I've been doing in the lab:
 
 There are a few "unclaimed" controls. I'm still looking for features to implement for them:
 
-    *   `Censor` / `Shift+Censor`
-    *   `Slicer`/`Sampler`, as well as all the `Shift`+PadMode pad modes.
+   *   `Censor` / `Shift+Censor`
+   *   `Slicer`/`Sampler`, as well as all the `Shift`+PadMode pad modes.
         It should be possible to emulate Serato's Slicer feature within this script.
         Mixxx does have a "Sampler", which is basically just a ton of hidden decks. I don't use it but perhaps it would be a good starting point.
-    *   `Shift+Autoloop`
-    *   `Shift+Slip`
-    *   `Back`/`Load/Prepare` (although Mixxx v2.1 adds some controls that should work for these)
-    *   `Tap` (the latch under the `Beat` rotary)
+   *   `Shift+Autoloop`
+   *   `Shift+Slip`
+   *   `Back`/`Load/Prepare` (although Mixxx v2.1 adds some controls that should work for these)
+   *   `Tap` (the latch under the `Beat` rotary)
 
 
 ## Prep Mode
@@ -156,29 +156,29 @@ or keyboard. I will never prep tracks again without it :]
 
 The controls in Prep Mode are the same as in performance mode, with the following exceptions:
 
-    *   Hotcue mode pads set the hotcue. Hold `Shift` and press a pad to clear that hotcue
-    *   `Autoloop` jumps forward/backward by 1 beat
-    *   `Autoloop` rotary button sets the cue point and starts playing in CDJ cue point mode
-    *   `Sync` sets the downbeat to the current playback position
-    *   `Beat` rotary adjusts the track's BPM. This is the BPM stored in the library, *not* the playback tempo!
-    *   `Slip` jumps to current cue point
-    *   `Shift+Autloop` does fine-grained adjustment of the current playback position
-    *   `ParamLeft`/`ParamRight` jumps 8 beats backwards/forwards, where the first 4 beats happen on button-down, and the second 4 beats happen when you release.
+   *   Hotcue mode pads set the hotcue. Hold `Shift` and press a pad to clear that hotcue
+   *   `Autoloop` jumps forward/backward by 1 beat
+   *   `Autoloop` rotary button sets the cue point and starts playing in CDJ cue point mode
+   *   `Sync` sets the downbeat to the current playback position
+   *   `Beat` rotary adjusts the track's BPM. This is the BPM stored in the library, *not* the playback tempo!
+   *   `Slip` jumps to current cue point
+   *   `Shift+Autloop` does fine-grained adjustment of the current playback position
+   *   `ParamLeft`/`ParamRight` jumps 8 beats backwards/forwards, where the first 4 beats happen on button-down, and the second 4 beats happen when you release.
         Note that you can set hotcues while holding one of the buttons, which is handy for the odd track
         that has smaller phrasing
 
 This is very well suited to a particular workflow:
 
-    1)  Use `MiddleRotary` + `LoadLeft` to load up a track
-    2)  Use `Autoloop` to get to a downbeat transient (use `Shift+Autoloop` to get it exact). Press `Autoloop` to preview track at current position.
-    3)  Press `Sync` to set the downbeat
-    4)  Set a hotcue
-    5)  Use `Autoloop` to scan through the track and ensure the BPM was detected correctly
-    6)  If not, use `Beat` rotary to adjust BPM.
-    7)  Jump to downbeat (press hotcue you set)
-    8)  Press `Sync` to reset the downbeat
-    9)  Go to 5. Note that you can press `Autoloop` later in the track to set cue point, then press `Slip` here to jump to it and check the BPM.
-    10) Once BPM is correct, use `ParamLeft`/`ParamRight` to quickly jump through the track and set hotcues elsewhere
+   1)  Use `MiddleRotary` + `LoadLeft` to load up a track
+   2)  Use `Autoloop` to get to a downbeat transient (use `Shift+Autoloop` to get it exact). Press `Autoloop` to preview track at current position.
+   3)  Press `Sync` to set the downbeat
+   4)  Set a hotcue
+   5)  Use `Autoloop` to scan through the track and ensure the BPM was detected correctly
+   6)  If not, use `Beat` rotary to adjust BPM.
+   7)  Jump to downbeat (press hotcue you set)
+   8)  Press `Sync` to reset the downbeat
+   9)  Go to 5. Note that you can press `Autoloop` later in the track to set cue point, then press `Slip` here to jump to it and check the BPM.
+   10) Once BPM is correct, use `ParamLeft`/`ParamRight` to quickly jump through the track and set hotcues elsewhere
 
 Note that there is acceleration applied to `Autoloop` and `Beat` rotary movement.
 
@@ -187,16 +187,16 @@ The `Slip` button is designed to make it possible to quickly check a downbeat fa
 
 #### TODO
 
-    *   Find use for the Slicer and Sampler pad modes
+   *   Find use for the Slicer and Sampler pad modes
 
-    *   Check for updates for autoloop rotary btn bug (deck3 sends same midi as deck4)
+   *   Check for updates for autoloop rotary btn bug (deck3 sends same midi as deck4)
 
-    *   Shift+fx1/fx2 functionality?
+   *   Shift+fx1/fx2 functionality?
 
-    *   Tap tempo doesn't seem to work? Doesn't work in UI either, so... Mixxx bug?
+   *   Tap tempo doesn't seem to work? Doesn't work in UI either, so... Mixxx bug?
 
-    *   Visual feedback when switching between performance and prep modes
+   *   Visual feedback when switching between performance and prep modes
 
-    *   Acceleration for `MiddleRotary`
+   *   Acceleration for `MiddleRotary`
 
-    *   Make YouTube video for "Prep Mode" workflow
+   *   Make YouTube video for "Prep Mode" workflow
