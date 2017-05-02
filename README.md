@@ -98,17 +98,15 @@ you had not touched anything.
 
 ### Slicer
 
-When you first switch to Slicer mode, none of the pads will be lit. Pressing any of the pads
-will set the size of each slice in beats (these have the same sizes as the Roll mode pads),
-and the slicer's first slice position will be placed at the current playback position.
+Pressing `Shift+PadN` will change the slice size.
 
-You will see the pad light up. You can now press any pad to start looping that slice in slip
-mode. Release the pad to exit the loop and exit slip mode.
+Pressing `Shift+Slicer` will set the reference downbeat. If you don't do this, the script
+will assume the first non-empty hotcue is on a downbeat and use that instead. The reference
+downbeat is stored in hotcue 36.
 
-Pressing `Shift+PadN` will change the slice size without changing the start position.
-
-Pressing `Shift+Slicer` will clear the start position. The LEDs will clear, and you can now
-press any pad to set the start position + slice size.
+The idea behind the slicer is that there is a rolling section of the track that is always
+divided into slices. Press a slicer button to loop that slice in slip mode. Let go to
+end slip mode and exit the loop.
 
 [YouTube video of Serato's Slicer](https://www.youtube.com/watch?v=ONXn11qfY5M)
 
@@ -149,6 +147,9 @@ Some stuff I've been doing in the lab:
    *   `Shift+ParamLeft` and `Shift+ParamRight` can jump you pretty far around a track, which can
         allow you to tease drops (with large loop sizes) or create glitchy renditions of melodies
         (with small loop sizes)
+   *   With the slicer, you can hold one pad (try holding down a slice with a hihat) while pressing
+        other pads (try pressing a slice with a kick drum). Easy to build simple beats with this
+        technique.
 
 ### Unclaimed Controls
 
