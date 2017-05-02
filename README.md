@@ -110,7 +110,7 @@ Pressing `Shift+PadN` will change the slice size without changing the start posi
 Pressing `Shift+Slicer` will clear the start position. The LEDs will clear, and you can now
 press any pad to set the start position + slice size.
 
-![YouTube video of Serato's Slicer](https://www.youtube.com/watch?v=ONXn11qfY5M)
+[YouTube video of Serato's Slicer](https://www.youtube.com/watch?v=ONXn11qfY5M)
 
 ### Selecting Decks
 
