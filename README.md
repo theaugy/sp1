@@ -96,6 +96,22 @@ Slip mode is supported: just press `Slip`. The `Slip` button will light up. You 
 looping/hotcue juggling you want, and when you press `Slip` again, playback will resume as though
 you had not touched anything.
 
+### Slicer
+
+When you first switch to Slicer mode, none of the pads will be lit. Pressing any of the pads
+will set the size of each slice in beats (these have the same sizes as the Roll mode pads),
+and the slicer's first slice position will be placed at the current playback position.
+
+You will see the pad light up. You can now press any pad to start looping that slice in slip
+mode. Release the pad to exit the loop and exit slip mode.
+
+Pressing `Shift+PadN` will change the slice size without changing the start position.
+
+Pressing `Shift+Slicer` will clear the start position. The LEDs will clear, and you can now
+press any pad to set the start position + slice size.
+
+![YouTube video of Serato's Slicer](https://www.youtube.com/watch?v=ONXn11qfY5M)
+
 ### Selecting Decks
 
 `SelectDeck3` and `SelectDeck4` are momentary buttons by default. This is meant to allow you to

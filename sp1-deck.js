@@ -37,6 +37,34 @@ var makeDeck = function(deckNum) {
     ret.normalizedToSamples = function(norm) {
         return norm * mixxxGet(ret.channel, 'track_samples');
     };
+    ret.adjustLoopSamples = function(startSample, endSample) {
+        var prevStart = mixxxGet(ret.channel, 'loop_start_position');
+        var prevEnd = mixxxGet(ret.channel, 'loop_end_position');
+        if (prevStart > endSample) {
+            // new end comes before current start. adjust start first.
+            mixxxSet(ret.channel, 'loop_start_position', startSample);
+            mixxxSet(ret.channel, 'loop_end_position', endSample);
+        } else {
+            mixxxSet(ret.channel, 'loop_end_position', endSample);
+            mixxxSet(ret.channel, 'loop_start_position', startSample);
+        }
+    };
+    ret.adjustLoopNormalized = function(start, end) {
+        ret.adjustLoopSamples(ret.normalizedToSamples(start), ret.normalizedToSamples(end));
+    };
+    ret.loopEnabled = function() {
+        return mixxxGet(ret.channel, 'loop_enabled');
+    };
+    ret.shiftLoopBeats = function(beats) {
+        if (beats === 0) return;
+        mixxxSet(ret.channel, 'loop_move', beats);
+    };
+    ret.round = function(args) {
+        return Math.floor(args.n / args.toNearest) * args.toNearest;
+    };
+    ret.samplesToBeats = function(samples) {
+        return samplesToBeats(samples, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+    }
 
     // called by fx
     ret.deckFilterKnob = function(value) {
@@ -163,7 +191,7 @@ var makeDeck = function(deckNum) {
         if (currentLoopEnd <= currentLoopStart) return 0;
         var currentLoopLength = currentLoopEnd - currentLoopStart;
         // now we need to do some math to figure out how long the loop currently is.
-        var beats = samplesToBeats(currentLoopLength, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
+        var beats = ret.samplesToBeats(currentLoopLength);
         var eighths = beats * 8; // our 8 pads go from 1/8th to 16 beats
         return eighths;
     };
@@ -216,9 +244,8 @@ var makeDeck = function(deckNum) {
                 }
                 var samples = ret.beatsToSamples(4);
                 mixxxSet(ret.channel, 'playposition', ret.samplesNormalized(pos));
-                mixxxSet(ret.channel, 'loop_start_position', pos);
-                mixxxSet(ret.channel, 'loop_end_position', pos + samples);
-                if (!mixxxGet(ret.channel, 'loop_enabled'))
+                ret.adjustLoopSamples(pos, pos+samples);
+                if (!ret.loopEnabled())
                 {
                     mixxxButtonPress(ret.channel, 'reloop_exit');
                 }
@@ -277,7 +304,7 @@ var makeDeck = function(deckNum) {
     makePad = function(lengthInBeats, setloop, physKey) {
         midi[physKey] = midiValueHandler(function(value) {
             if (value != 0x7F) return;
-            if (Math.round(getLoopEighths()) == Math.round(lengthInBeats*8) && mixxxGet(ret.channel, 'loop_enabled')) {
+            if (Math.round(getLoopEighths()) == Math.round(lengthInBeats*8) && ret.loopEnabled()) {
                 // loop is already set to this value and enabled. Disable the loop.
                 mixxxButtonPress(ret.channel, setloop);
                 // leave the LED on.
@@ -299,10 +326,29 @@ var makeDeck = function(deckNum) {
 
     // emulates the behavior of Serato's slicer
     var slicer = {};
+    slicer.reservedHotcue = 'hotcue_36';
     ret.padMode['slicer'] = slicer;
-    slicer.beats = 0;
+    slicer.beats = 8;
     slicer.pos = 0;
     slicer.padstack = [];
+    slicer.ensureReferenceDownbeat = function() {
+        if (!mixxxGet(ret.channel, slicer.reservedHotcue + '_enabled')) {
+            dbglog(slicer.reservedHotcue + ' is not set...');
+            for (var i = 1; i <= 8; ++i) {
+                if (mixxxGet(ret.channel, 'hotcue_' + i + '_enabled')) {
+                    // assume that the first non-empty hotcue is on a downbeat. The user can
+                    // press Shift+Slicer to override this.
+                    var pos = mixxxGet(ret.channel, 'hotcue_' + i + '_position');
+                    dbglog("Using hotcue " + i + " for reference downbeat at " + pos);
+                    mixxxSet(ret.channel, slicer.reservedHotcue + '_position', pos);
+                    return ret.samplesNormalized(pos);
+                }
+            }
+            throw "Cannot use slicer features without a reference downbeat. Press Shift+Slicer on a downbeat.";
+        } else {
+            return ret.samplesNormalized(mixxxGet(ret.channel, slicer.reservedHotcue + '_position'));
+        }
+    };
     slicer.setLeds = function() {
         for (var i = 1; i <= 8; ++i) {
             sp1.ledSet(ret._msk('slicer', false, 'pad' + i), slicer.beats === (1/4) * Math.pow(2, i - 1));
@@ -310,43 +356,83 @@ var makeDeck = function(deckNum) {
         sp1.ledOn(ret._mode('slicer'));
     };
 
+    var setSliceLoop = function(pad) {
+        var referenceNorm = slicer.ensureReferenceDownbeat();
+        var currentPosNorm = mixxxGet(ret.channel, 'playposition');
+        // "section" is the extent being sliced
+        // slice0 = normalized offset of start of section
+        // quant = length of slice in beats
+        // slicer.beats = length of section in beats
+        var quant = slicer.beats / 8;
+        var sectionLengthNorm = ret.samplesNormalized(ret.beatsToSamples(slicer.beats));
+
+        var slice0 = ret.round({
+            n: Math.abs(currentPosNorm - referenceNorm),
+            toNearest: sectionLengthNorm });
+
+        var currentPositionRoundedToSlice = ret.round({ // slice-rounded normalized offset
+            n: Math.abs(currentPosNorm - referenceNorm),
+            toNearest: (sectionLengthNorm / 8) });
+
+        // normalized offset for this slice
+        var slicePad = slice0 + (pad-1) * ret.samplesNormalized(ret.beatsToSamples(quant));
+
+        // are we currently quantized? assume so.
+        var beatDiff = slicePad - currentPositionRoundedToSlice; // normalized diff
+        // convert normalized to beat
+        beatDiff = ret.samplesToBeats(ret.normalizedToSamples(beatDiff));
+
+        // only reset the slice0 (which is basically where the first slice begins)
+        // if there were no other pads pressed already
+        if (slicer.padstack.length === 0) {
+            mixxxSet(ret.channel, 'slip_enabled', true);
+            sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
+        }
+
+        //dbglog("Currently in section " + slice0 / sectionLengthNorm + ", pos " + sliceCurrentPos + ", beatDiff = " + beatDiff);
+
+        // turn on our beat loop
+        if (!ret.loopEnabled()) {
+            dbglog("enabling beatloop " + quant);
+            mixxxButtonPress(ret.channel, 'beatloop_' + quant + '_toggle');
+        }
+        // and shift it beatDiff
+        dbglog("Shifting beatloop by " + beatDiff);
+        ret.shiftLoopBeats(beatDiff);
+    };
+
     makePad = function(pad, physKey, shiftPhysKey) {
         midi[physKey] = midiValueHandler(function(value) {
             if (value == 0x7F) {
-                if (slicer.beats === 0) {
-                    // we're setting the number of beats
-                    slicer.beats = (1/4) * Math.pow(2, pad - 1);
-                    slicer.pos = mixxxGet(ret.channel, 'playposition');
-                    sp1.ledOn(physKey);
-                    return;
-                }
-                var slicerLength = ret.beatsToSamples(slicer.beats) / 8; // 1/8th per pad
-                var offset = slicerLength * (pad - 1);
-                var offsetNormalized = ret.samplesNormalized(offset);
-                mixxxSet(ret.channel, 'slip_enabled', true);
-                mixxxSet(ret.channel, 'playposition', slicer.pos + offsetNormalized);
-                sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
-                dbglog("playposition " + slicer.pos + ' over ' + slicer.beats + ' beats, jumping to ' + pad + ' and position is now ' + mixxxGet(ret.channel, 'playposition'));
-                if (mixxxGet(ret.channel, 'loop_enabled') == true) {
-                    mixxxButtonPress(ret.channel, 'reloop_exit');
-                }
-                mixxxSet(ret.channel, 'loop_start_position', ret.normalizedToSamples(slicer.pos + offsetNormalized));
-                mixxxSet(ret.channel, 'loop_end_position', ret.normalizedToSamples(slicer.pos + offsetNormalized) + slicerLength);
-                mixxxButtonPress(ret.channel, 'reloop_exit');
-                slicer.padstack.push(pad);
+                setSliceLoop(pad);
+                slicer.padstack.push( { pad: pad } );
             } else if (slicer.beats !== 0) {
-                var i = slicer.padstack.indexOf(pad);
-                if (i >= 0)
+                var waslast = false;
+                for (var i = 0; i < slicer.padstack.length; ++i) {
+                    if (slicer.padstack[i].pad === pad) {
+                        break;
+                    }
+                }
+                if (i >= 0 && i < slicer.padstack.length)
+                {
+                    if (i === slicer.padstack.length - 1)
+                        waslast = true;
                     slicer.padstack.splice(i, 1);
+                }
                 else
                     return;
                 if (slicer.padstack.length !== 0)
                 {
-                    dbglog(pad + " is not the last in " + JSON.stringify(slicer.padstack));
+                    if (waslast) {
+                        // update loop to match top of pad stack
+                        var last = slicer.padstack[slicer.padstack.length - 1];
+                        setSliceLoop(last.pad);
+                    }
                     return;
                 }
+                dbglog("turning off loop");
                 // turn off the loop
-                if (mixxxGet(ret.channel, 'loop_enabled') == true) {
+                if (ret.loopEnabled()) {
                     mixxxButtonPress(ret.channel, 'reloop_exit');
                 }
                 // disable slip
@@ -357,12 +443,6 @@ var makeDeck = function(deckNum) {
         midi[shiftPhysKey] = midiValueHandler(function(value) {
             if (value == 0x7F) {
                 slicer.beats = (1/4) * Math.pow(2, pad - 1);
-                if (slicer.pos === 0) {
-                    // only set position if there is no position already. The main
-                    // functionality of shift+pad is to adjust number of beats
-                    // without changing the position
-                    slicer.pos = mixxxGet(ret.channel, 'playposition');
-                }
                 slicer.setLeds();
             }
         });
@@ -381,7 +461,10 @@ var makeDeck = function(deckNum) {
     // shift + slicer to reset the slicer size
     midi[ret._mode('manualloop')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
-            slicer.beats = 0;
+            // set the reference downbeat to current position
+            dbglog("Setting reference downbeat");
+            mixxxButtonPress(ret.channel, slicer.reservedHotcue + '_clear');
+            mixxxButtonPress(ret.channel, slicer.reservedHotcue + '_set');
             slicer.setLeds();
         }
     });
