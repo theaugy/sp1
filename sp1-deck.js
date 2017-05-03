@@ -329,7 +329,8 @@ var makeDeck = function(deckNum) {
     slicer.reservedHotcue = 'hotcue_36';
     ret.padMode['slicer'] = slicer;
     slicer.beats = 8;
-    slicer.pos = 0;
+    slicer.slice0 = -1;
+    slicer.currentSlice = -1;
     slicer.padstack = [];
     slicer.ensureReferenceDownbeat = function() {
         if (!mixxxGet(ret.channel, slicer.reservedHotcue + '_enabled')) {
@@ -339,8 +340,6 @@ var makeDeck = function(deckNum) {
                     // assume that the first non-empty hotcue is on a downbeat. The user can
                     // press Shift+Slicer to override this.
                     var pos = mixxxGet(ret.channel, 'hotcue_' + i + '_position');
-                    dbglog("Using hotcue " + i + " for reference downbeat at " + pos);
-                    mixxxSet(ret.channel, slicer.reservedHotcue + '_position', pos);
                     return ret.samplesNormalized(pos);
                 }
             }
@@ -366,13 +365,25 @@ var makeDeck = function(deckNum) {
         var quant = slicer.beats / 8;
         var sectionLengthNorm = ret.samplesNormalized(ret.beatsToSamples(slicer.beats));
 
-        var slice0 = ret.round({
-            n: Math.abs(currentPosNorm - referenceNorm),
-            toNearest: sectionLengthNorm });
+        var slice0 = slicer.slice0;
+        var currentPositionRoundedToSlice = slicer.currentSlice;
+        if (slice0 === -1) {
+            slice0 = ret.round({
+                n: Math.abs(currentPosNorm - referenceNorm),
+                toNearest: sectionLengthNorm });
+            slicer.slice0 = slice0;
 
-        var currentPositionRoundedToSlice = ret.round({ // slice-rounded normalized offset
-            n: Math.abs(currentPosNorm - referenceNorm),
-            toNearest: (sectionLengthNorm / 8) });
+            currentPositionRoundedToSlice = ret.round({ // slice-rounded normalized offset
+                n: Math.abs(currentPosNorm - referenceNorm),
+                toNearest: (sectionLengthNorm / 8) });
+
+            if (slicer.padstack.length !== 0) {
+                dbglog("WHOA! Somehow, padstack is non-empty but slicer.slice0 isn't set");
+            }
+
+            mixxxSet(ret.channel, 'slip_enabled', true);
+            sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
+        }
 
         // normalized offset for this slice
         var slicePad = slice0 + (pad-1) * ret.samplesNormalized(ret.beatsToSamples(quant));
@@ -382,12 +393,7 @@ var makeDeck = function(deckNum) {
         // convert normalized to beat
         beatDiff = ret.samplesToBeats(ret.normalizedToSamples(beatDiff));
 
-        // only reset the slice0 (which is basically where the first slice begins)
-        // if there were no other pads pressed already
-        if (slicer.padstack.length === 0) {
-            mixxxSet(ret.channel, 'slip_enabled', true);
-            sp1.ledSet(ret._msk(false, false, 'slip'), mixxxGet(ret.channel, 'slip_enabled'));
-        }
+        slicer.currentSlice = slicePad;
 
         //dbglog("Currently in section " + slice0 / sectionLengthNorm + ", pos " + sliceCurrentPos + ", beatDiff = " + beatDiff);
 
@@ -431,6 +437,7 @@ var makeDeck = function(deckNum) {
                     return;
                 }
                 dbglog("turning off loop");
+                slicer.slice0 = -1;
                 // turn off the loop
                 if (ret.loopEnabled()) {
                     mixxxButtonPress(ret.channel, 'reloop_exit');
