@@ -66,21 +66,37 @@ var makeDeck = function(deckNum) {
         return samplesToBeats(samples, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
     }
 
-    // called by fx
-    ret.deckFilterKnob = function(value) {
-        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-        mixxxSet(deckFilter, 'super1', valueFromMidi(value));
-    };
-    ret.deckFilterLatch = function(value) {
-        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-        mixxxLatch(value, deckFilter, 'enabled');
-    };
-    ret.deckFilterLatchGet = function() {
-        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-        return mixxxGet(deckFilter, 'enabled');
+    ret.channel = '[Channel' + ret.deck + ']';
+
+    var makeKnobLatch = function(group, key, override) {
+        var kl = {};
+        kl.latched = true;
+        kl.knobValue = override;
+        kl.knob = function(value) {
+            kl.knobValue = value;
+            if (kl.latched === true) return;
+            mixxxSet(group, key, valueFromMidi(value));
+        };
+        kl.latch = function() {
+            if (!kl.latched) {
+                mixxxSet(group, key, override);
+                kl.latched = true;
+            } else {
+                mixxxSet(group, key, valueFromMidi(kl.knobValue));
+                kl.latched = false;
+            }
+        };
+        return kl;
     };
 
-    ret.channel = '[Channel' + ret.deck + ']';
+    var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
+    var mixerEq = '[EqualizerRack1_' + ret.channel + '_Effect1]'
+    var mixerLo = 'parameter1';
+    var mixerHi = 'parameter3';
+    ret.volume = makeKnobLatch(ret.channel, 'volume', 1);
+    ret.eqLow = makeKnobLatch(mixerEq, mixerLo, .5);
+    ret.eqHigh = makeKnobLatch(mixerEq, mixerHi, .5);
+    ret.filter = makeKnobLatch(deckFilter, 'super1', .5);
 
     // NOTE: If you're looking for the autoloop or param midi configurations, it is below the 'roll'
     // pad mode stuff (because it needs to be aware of the 'roll' mode)
@@ -297,32 +313,19 @@ var makeDeck = function(deckNum) {
 
     midi[ret._mode('roll')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
-            ret.setPadMode('roll');
+            var nowEnabled = !ret.loopEnabled(); // invert because we're flipping it
+            if (nowEnabled)
+            {
+                mixxxButtonPress(ret.channel, 'beatloop_1_toggle');
+                sp1.ledOn(ret._msk(false, false, 'autoloop'));
+            }
+            else
+            {
+                mixxxButtonPress(ret.channel, 'reloop_exit');
+                sp1.ledOff(ret._msk(false, false, 'autoloop'));
+            }
         }
     });
-
-    makePad = function(lengthInBeats, setloop, physKey) {
-        midi[physKey] = midiValueHandler(function(value) {
-            if (value != 0x7F) return;
-            if (Math.round(getLoopEighths()) == Math.round(lengthInBeats*8) && ret.loopEnabled()) {
-                // loop is already set to this value and enabled. Disable the loop.
-                mixxxButtonPress(ret.channel, setloop);
-                // leave the LED on.
-            } else {
-                // change to this loop value using the setloop key, which will change the loop
-                // length and enable the loop
-                mixxxButtonPress(ret.channel, setloop);
-                roll.clearLeds();
-                sp1.ledOn(physKey);
-            }
-        });
-    };
-
-    var beatlength = (1/8);
-    for (var i = 1; i <= 8; ++i) {
-        makePad(beatlength, 'beatloop_' + beatlength + '_toggle', ret._msk('roll', false, 'pad' + i));
-        beatlength *= 2;
-    }
 
     // emulates the behavior of Serato's slicer
     var slicer = {};
@@ -461,6 +464,7 @@ var makeDeck = function(deckNum) {
     }
 
     midi[ret._mode('slicer')] = midiValueHandler(function(value) {
+        return;
         if (value == 0x7F) {
             ret.setPadMode('slicer');
         }

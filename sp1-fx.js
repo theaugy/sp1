@@ -71,32 +71,41 @@ var makeFx = function() {
     })('fx2knob1', 'fx2latch1', 3);
     makeFxControl('fx2knob2', 'fx2latch2', 4);
 
-    // knob3/latch3 are redirected to the current left or right deck's filter
+    var connectToDeckKnobLatch = function(getDeckFn, knobLatchName, knob, latch) {
+        midi[ret._physGet(false, knob)] = midiValueHandler(function(value) {
+            getDeckFn()[knobLatchName].knob(value);
+        });
+        midi[ret._physGet(false, latch)] = midiValueHandler(function(value) {
+            if (value === 127) {
+                getDeckFn()[knobLatchName].latch();
+                var isLatched = getDeckFn()[knobLatchName].latched === true;
+                sp1.ledSet(ret._physGet(false, latch), isLatched);
+            }
+        });
+    };
 
-    // forward midi messages to the appropriate deck
-    midi[ret._physGet(false, 'fx1knob3')] = midiValueHandler(function(value) {
-        sp1.getLeftDeck().deckFilterKnob(value);
-    });
-    midi[ret._physGet(false, 'fx1latch3')] = midiValueHandler(function(value) {
-        sp1.getLeftDeck().deckFilterLatch(value);
-        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
-    });
-    midi[ret._physGet(false, 'fx2knob3')] = midiValueHandler(function(value) {
-        sp1.getRightDeck().deckFilterKnob(value);
-    });
-    midi[ret._physGet(false, 'fx2latch3')] = midiValueHandler(function(value) {
-        sp1.getRightDeck().deckFilterLatch(value);
-        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
-    });
-
-    // it would be nice to ask the decks, but fx is built first. So we assume that the
-    // fx are on by default.
-    sp1.ledSet(ret._physGet(false, 'fx1latch3'), true);
-    sp1.ledSet(ret._physGet(false, 'fx2latch3'), true);
+    var getLeftDeck = function() { return sp1.getLeftDeck(); };
+    var getRightDeck = function() { return sp1.getRightDeck(); };
+    // knob3/latch3 are redirected to the current left or right deck's volume
+    connectToDeckKnobLatch(getLeftDeck, 'volume', 'fx1knob3', 'fx1latch3');
+    connectToDeckKnobLatch(getRightDeck, 'volume', 'fx2knob3', 'fx2latch3');
+    // knob2/latch2 are redirected to current left/right deck's low eq
+    connectToDeckKnobLatch(getLeftDeck, 'eqHigh', 'fx1knob2', 'fx1latch2');
+    connectToDeckKnobLatch(getRightDeck, 'eqHigh', 'fx2knob2', 'fx2latch2');
+    // knob1/latch1 are redirected to current left/right deck's low eq
+    connectToDeckKnobLatch(getLeftDeck, 'eqLow', 'fx1knob1', 'fx1latch1');
+    connectToDeckKnobLatch(getRightDeck, 'eqLow', 'fx2knob1', 'fx2latch1');
 
     ret.updateDeckLeds = function() {
-        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
-        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
+        return;
+        sp1.ledSet(ret._physGet(false, 'fx1latch1'), sp1.getLeftDeck().eqLowLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch1'), sp1.getRightDeck().eqLowLatchGet());
+
+        sp1.ledSet(ret._physGet(false, 'fx1latch2'), sp1.getLeftDeck().eqHighLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch2'), sp1.getRightDeck().eqHighLatchGet());
+
+        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().volumeLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().volumeLatchGet());
     };
 
     // forward rotary to left/right deck

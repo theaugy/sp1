@@ -1002,21 +1002,37 @@ var makeDeck = function(deckNum) {
         return samplesToBeats(samples, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
     }
 
-    // called by fx
-    ret.deckFilterKnob = function(value) {
-        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-        mixxxSet(deckFilter, 'super1', valueFromMidi(value));
-    };
-    ret.deckFilterLatch = function(value) {
-        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-        mixxxLatch(value, deckFilter, 'enabled');
-    };
-    ret.deckFilterLatchGet = function() {
-        var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
-        return mixxxGet(deckFilter, 'enabled');
+    ret.channel = '[Channel' + ret.deck + ']';
+
+    var makeKnobLatch = function(group, key, override) {
+        var kl = {};
+        kl.latched = true;
+        kl.knobValue = override;
+        kl.knob = function(value) {
+            kl.knobValue = value;
+            if (kl.latched === true) return;
+            mixxxSet(group, key, valueFromMidi(value));
+        };
+        kl.latch = function() {
+            if (!kl.latched) {
+                mixxxSet(group, key, override);
+                kl.latched = true;
+            } else {
+                mixxxSet(group, key, valueFromMidi(kl.knobValue));
+                kl.latched = false;
+            }
+        };
+        return kl;
     };
 
-    ret.channel = '[Channel' + ret.deck + ']';
+    var deckFilter = '[QuickEffectRack1_[Channel' + ret.deck + ']]';
+    var mixerEq = '[EqualizerRack1_' + ret.channel + '_Effect1]'
+    var mixerLo = 'parameter1';
+    var mixerHi = 'parameter3';
+    ret.volume = makeKnobLatch(ret.channel, 'volume', 1);
+    ret.eqLow = makeKnobLatch(mixerEq, mixerLo, .5);
+    ret.eqHigh = makeKnobLatch(mixerEq, mixerHi, .5);
+    ret.filter = makeKnobLatch(deckFilter, 'super1', .5);
 
     // NOTE: If you're looking for the autoloop or param midi configurations, it is below the 'roll'
     // pad mode stuff (because it needs to be aware of the 'roll' mode)
@@ -1233,32 +1249,19 @@ var makeDeck = function(deckNum) {
 
     midi[ret._mode('roll')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
-            ret.setPadMode('roll');
+            var nowEnabled = !ret.loopEnabled(); // invert because we're flipping it
+            if (nowEnabled)
+            {
+                mixxxButtonPress(ret.channel, 'beatloop_1_toggle');
+                sp1.ledOn(ret._msk(false, false, 'autoloop'));
+            }
+            else
+            {
+                mixxxButtonPress(ret.channel, 'reloop_exit');
+                sp1.ledOff(ret._msk(false, false, 'autoloop'));
+            }
         }
     });
-
-    makePad = function(lengthInBeats, setloop, physKey) {
-        midi[physKey] = midiValueHandler(function(value) {
-            if (value != 0x7F) return;
-            if (Math.round(getLoopEighths()) == Math.round(lengthInBeats*8) && ret.loopEnabled()) {
-                // loop is already set to this value and enabled. Disable the loop.
-                mixxxButtonPress(ret.channel, setloop);
-                // leave the LED on.
-            } else {
-                // change to this loop value using the setloop key, which will change the loop
-                // length and enable the loop
-                mixxxButtonPress(ret.channel, setloop);
-                roll.clearLeds();
-                sp1.ledOn(physKey);
-            }
-        });
-    };
-
-    var beatlength = (1/8);
-    for (var i = 1; i <= 8; ++i) {
-        makePad(beatlength, 'beatloop_' + beatlength + '_toggle', ret._msk('roll', false, 'pad' + i));
-        beatlength *= 2;
-    }
 
     // emulates the behavior of Serato's slicer
     var slicer = {};
@@ -1397,6 +1400,7 @@ var makeDeck = function(deckNum) {
     }
 
     midi[ret._mode('slicer')] = midiValueHandler(function(value) {
+        return;
         if (value == 0x7F) {
             ret.setPadMode('slicer');
         }
@@ -1772,32 +1776,41 @@ var makeFx = function() {
     })('fx2knob1', 'fx2latch1', 3);
     makeFxControl('fx2knob2', 'fx2latch2', 4);
 
-    // knob3/latch3 are redirected to the current left or right deck's filter
+    var connectToDeckKnobLatch = function(getDeckFn, knobLatchName, knob, latch) {
+        midi[ret._physGet(false, knob)] = midiValueHandler(function(value) {
+            getDeckFn()[knobLatchName].knob(value);
+        });
+        midi[ret._physGet(false, latch)] = midiValueHandler(function(value) {
+            if (value === 127) {
+                getDeckFn()[knobLatchName].latch();
+                var isLatched = getDeckFn()[knobLatchName].latched === true;
+                sp1.ledSet(ret._physGet(false, latch), isLatched);
+            }
+        });
+    };
 
-    // forward midi messages to the appropriate deck
-    midi[ret._physGet(false, 'fx1knob3')] = midiValueHandler(function(value) {
-        sp1.getLeftDeck().deckFilterKnob(value);
-    });
-    midi[ret._physGet(false, 'fx1latch3')] = midiValueHandler(function(value) {
-        sp1.getLeftDeck().deckFilterLatch(value);
-        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
-    });
-    midi[ret._physGet(false, 'fx2knob3')] = midiValueHandler(function(value) {
-        sp1.getRightDeck().deckFilterKnob(value);
-    });
-    midi[ret._physGet(false, 'fx2latch3')] = midiValueHandler(function(value) {
-        sp1.getRightDeck().deckFilterLatch(value);
-        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
-    });
-
-    // it would be nice to ask the decks, but fx is built first. So we assume that the
-    // fx are on by default.
-    sp1.ledSet(ret._physGet(false, 'fx1latch3'), true);
-    sp1.ledSet(ret._physGet(false, 'fx2latch3'), true);
+    var getLeftDeck = function() { return sp1.getLeftDeck(); };
+    var getRightDeck = function() { return sp1.getRightDeck(); };
+    // knob3/latch3 are redirected to the current left or right deck's volume
+    connectToDeckKnobLatch(getLeftDeck, 'volume', 'fx1knob3', 'fx1latch3');
+    connectToDeckKnobLatch(getRightDeck, 'volume', 'fx2knob3', 'fx2latch3');
+    // knob2/latch2 are redirected to current left/right deck's low eq
+    connectToDeckKnobLatch(getLeftDeck, 'eqHigh', 'fx1knob2', 'fx1latch2');
+    connectToDeckKnobLatch(getRightDeck, 'eqHigh', 'fx2knob2', 'fx2latch2');
+    // knob1/latch1 are redirected to current left/right deck's low eq
+    connectToDeckKnobLatch(getLeftDeck, 'eqLow', 'fx1knob1', 'fx1latch1');
+    connectToDeckKnobLatch(getRightDeck, 'eqLow', 'fx2knob1', 'fx2latch1');
 
     ret.updateDeckLeds = function() {
-        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().deckFilterLatchGet());
-        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().deckFilterLatchGet());
+        return;
+        sp1.ledSet(ret._physGet(false, 'fx1latch1'), sp1.getLeftDeck().eqLowLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch1'), sp1.getRightDeck().eqLowLatchGet());
+
+        sp1.ledSet(ret._physGet(false, 'fx1latch2'), sp1.getLeftDeck().eqHighLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch2'), sp1.getRightDeck().eqHighLatchGet());
+
+        sp1.ledSet(ret._physGet(false, 'fx1latch3'), sp1.getLeftDeck().volumeLatchGet());
+        sp1.ledSet(ret._physGet(false, 'fx2latch3'), sp1.getRightDeck().volumeLatchGet());
     };
 
     // forward rotary to left/right deck
