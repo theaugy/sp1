@@ -1,0 +1,4 @@
+* Looper
+- [ ] Push loop button. When released, round to nearest beat and loop in
+- [ ] Push loop button. Before releasing, tap a pad.
+  - [ ] when loop released, establish loop starting at pad spot

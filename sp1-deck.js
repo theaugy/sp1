@@ -222,6 +222,81 @@ var makeDeck = function(deckNum) {
         sp1.ledOn(ret._mode('hotcue'));
     };
 
+    // you can just call pressDown(), hotcuePressed(), and release(), and
+    // recordLoop should handle it from there
+    var recordLoop = {
+        recording: false,
+        padPressedAtSample: -1, // _position of hotcue pressed, if any
+        pressedAt: -1,
+        reset: function() {
+            this.recording = false;
+            this.padPressedAtSample = -1;
+            this.pressedAt = -1;
+        },
+        ledOn: function() {
+            sp1.ledOn(ret._msk(false, false, 'autoloop'));
+        },
+        ledOff: function() {
+            sp1.ledOff(ret._msk(false, false, 'autoloop'));
+        },
+        pressDown: function() {
+            var nowEnabled = !ret.loopEnabled(); // invert because we're flipping it
+            if (nowEnabled) {
+                this.reset();
+                this.recording = true;
+                this.pressedAt = mixxxGet(ret.channel, 'position');
+            }
+            else {
+                // turn off loop. Maybe this should be done in release?
+                mixxxButtonPress(ret.channel, 'reloop_exit');
+                this.ledOff();
+            }
+        },
+        roundSample: function(sample) {
+            return ret.round({
+                n: sample,
+                toNearest: ret.beatsToSamples(1)
+            });
+        },
+        release: function() {
+            if (this.recording === true) { // shouldn't be necessary, but defensive
+                var currentPosNorm = mixxxGet(ret.channel, 'playposition');
+                var currentPosSample = ret.normalizedToSamples(currentPosNorm);
+                var currentPosRounded = this.roundSample(currentPosSample);
+                var startAtSample;
+                if (this.padPressedAtSample > -1) {
+                    // start at pad position
+                    startAtSample = this.roundSample(this.padPressedAtSample);
+                }
+                else {
+                    // start at position where recordLoop button was pressed
+                    startAtSample = this.roundSample(this.pressedAt);
+                }
+                // establish loop. First, let's try computing the number of
+                // beats, using beatloop_n_toggle, then shifting it (similar to
+                // how slicer does it)
+                var beatLength = ret.round({
+                    n: ret.samplesToBeats(currentPosRounded - startAtSample),
+                    toNearest: 1
+                });
+                mixxxButtonPress(ret.channel, 'beatloop_' + beatLength + '_toggle');
+                ret.shiftLoopBeats(beatLength);
+                this.ledOn();
+            }
+            else {
+                this.reset(); // take this opportunity to reset
+                this.ledOff();
+            }
+        },
+        // little awkward that we accept 'hotcue_i' instead of just i, but
+        // that is easiest given the implementation of makePad for hotcue mode
+        hotcuePressed: function(hcdo) {
+            if (this.recording === true) {
+                this.padPressedAtSample = mixxxGet(ret.channel,  hcdo + '_position');
+            }
+        }
+    };
+
     // pressing hotCue button sets the current pad mode to 'hotcues'
     midi[ret._mode('hotcue')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
@@ -240,6 +315,7 @@ var makeDeck = function(deckNum) {
             if (sp1.prepMode) {
                 hotcues.setLeds();
             }
+            recordLoop.hotcuePressed(hcdo);
         });
     };
 
@@ -313,17 +389,10 @@ var makeDeck = function(deckNum) {
 
     midi[ret._mode('roll')] = midiValueHandler(function(value) {
         if (value == 0x7F) {
-            var nowEnabled = !ret.loopEnabled(); // invert because we're flipping it
-            if (nowEnabled)
-            {
-                mixxxButtonPress(ret.channel, 'beatloop_1_toggle');
-                sp1.ledOn(ret._msk(false, false, 'autoloop'));
-            }
-            else
-            {
-                mixxxButtonPress(ret.channel, 'reloop_exit');
-                sp1.ledOff(ret._msk(false, false, 'autoloop'));
-            }
+            recordLoop.pressDown();
+        }
+        else {
+            recordLoop.release();
         }
     });
 
