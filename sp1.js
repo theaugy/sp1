@@ -996,7 +996,13 @@ var makeDeck = function(deckNum) {
     mixxxSet(ret.channel, 'loop_move', beats);
   };
   ret.round = function(args) {
-    return Math.floor(args.n / args.toNearest) * args.toNearest;
+    if (args.toUpper) {
+      return Math.ceil(args.n / args.toUpper) * args.toUpper;
+    }
+    if (args.toLower) {
+      return Math.floor(args.n / args.toLower) * args.toLower;
+    }
+    return Math.round(args.n / args.toNearest) * args.toNearest;
   };
   ret.samplesToBeats = function(samples) {
     return samplesToBeats(samples, mixxxGet(ret.channel, 'file_bpm'), mixxxGet(ret.channel, 'track_samplerate'));
@@ -1164,6 +1170,7 @@ var makeDeck = function(deckNum) {
     recording: false,
     padPressedAtSample: -1, // _position of hotcue pressed, if any
     pressedAt: -1,
+    beatgridOffsetSamples: -1,
     reset: function() {
       this.recording = false;
       this.padPressedAtSample = -1;
@@ -1181,48 +1188,53 @@ var makeDeck = function(deckNum) {
       if (nowEnabled) {
         this.reset();
         this.recording = true;
-        this.pressedAt = mixxxGet(ret.channel, 'position');
+
+        // you need a reference downbeat. There will hopefully be a way to get
+        // that from the beatgrid eventually, but for now this works as long as
+        // hotcue1 is on a downbeat.
+        var hotcue1pos = mixxxGet(ret.channel, 'hotcue_1_position');
+        this.beatgridOffsetSamples = this.round(hotcue1pos) - hotcue1pos;
+
+        this.pressedAt = mixxxGet(ret.channel, 'playposition');
+        dbglog('recordLoop start at ' + this.pressedAt);
       }
       else {
-        // turn off loop. Maybe this should be done in release?
-        mixxxButtonPress(ret.channel, 'reloop_exit');
-        this.ledOff();
+        return;
       }
     },
-    roundSample: function(sample) {
+    round: function(sample) {
       return ret.round({
         n: sample,
         toNearest: ret.beatsToSamples(1)
       });
     },
     release: function() {
-      dbglog("recordLoop up");
-      if (this.recording === true) { // shouldn't be necessary, but defensive
+      if (this.recording === true) {
         var currentPosNorm = mixxxGet(ret.channel, 'playposition');
         var currentPosSample = ret.normalizedToSamples(currentPosNorm);
-        var currentPosRounded = this.roundSample(currentPosSample);
         var startAtSample;
         if (this.padPressedAtSample > -1) {
           // start at pad position
-          startAtSample = this.roundSample(this.padPressedAtSample);
+          startAtSample = this.padPressedAtSample;
         }
         else {
           // start at position where recordLoop button was pressed
-          startAtSample = this.roundSample(this.pressedAt);
+          startAtSample = ret.normalizedToSamples(this.pressedAt);
         }
-        // establish loop. First, let's try computing the number of
-        // beats, using beatloop_n_toggle, then shifting it (similar to
-        // how slicer does it)
-        var beatLength = ret.round({
-          n: ret.samplesToBeats(currentPosRounded - startAtSample),
-          toNearest: 1
-        });
-        mixxxButtonPress(ret.channel, 'beatloop_' + beatLength + '_toggle');
-        ret.shiftLoopBeats(beatLength);
+        var startRounded = this.round(startAtSample);
+        var endRounded = this.round(currentPosSample);
+        if (endRounded === startRounded) {
+          endRounded += ret.beatsToSamples(1);
+        }
+        mixxxSet(ret.channel, 'loop_start_position', startRounded - this.beatgridOffsetSamples);
+        mixxxSet(ret.channel, 'loop_end_position', endRounded - this.beatgridOffsetSamples);
+        mixxxButtonPress(ret.channel, 'reloop_exit');
         this.ledOn();
+        this.recording = false;
       }
       else {
-        console.log("recordLoop not recording??");
+        // turn off loop.
+        mixxxButtonPress(ret.channel, 'reloop_exit');
         this.reset(); // take this opportunity to reset
         this.ledOff();
       }
